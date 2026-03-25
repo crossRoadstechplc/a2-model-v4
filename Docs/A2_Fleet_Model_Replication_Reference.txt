@@ -1,0 +1,240 @@
+A2 E Fleet Operations Financial Model - Replication Reference Guide
+=====================================================================
+
+Purpose
+-------
+This file is the implementation guide for rebuilding the workbook
+`A2 E FLEET OPERATIONS  FINANCIALS-VER 1 c.xlsx` so that:
+1. loading the current Excel assumption values reproduces the current Excel outputs exactly, and
+2. changing assumptions recalculates all dependent results recursively.
+
+Source files
+------------
+- Workbook: A2 E FLEET OPERATIONS  FINANCIALS-VER 1 c.xlsx
+- Companion reference: A2_Fleet_Financial_Model_Reference.md
+- Machine-readable build spec: A2_Fleet_Model_Replication_Reference.json
+
+Core modeling principle
+-----------------------
+Treat the Excel workbook as the source of truth for exact formulas, sheet names,
+row positions, and output values.
+Do NOT normalize or "improve" formulas during the first replication pass.
+Replicate literal workbook behavior first, including quirks.
+
+Workbook flow
+-------------
+ASSUMPTIONS_DATA
+  -> REVENUE PROJECTION
+  -> CAPEX & DEPRECIATION
+  -> SOURCE_USE OF FUNDS
+  -> INCOME STATEMENT 
+  -> CASH FLOW
+  -> BALANCE SHEET
+  -> VALUATION SUMMARY
+  -> KEY METRICS
+
+Sheet roles
+-----------
+- ASSUMPTIONS_DATA: master driver sheet
+- CAPEX & DEPRECIATION: capex schedule, depreciation grid, asset values
+- SOURCE_USE OF FUNDS: equity subscription, cumulative equity, use of funds
+- REVENUE PROJECTION: tonnes, rate, revenue pass-through
+- INCOME STATEMENT : revenue, cost, opex, EBITDA, tax, net income, investor returns
+- CASH FLOW: operating, investing, financing, closing cash
+- BALANCE SHEET: cash, PP&E, equity, retained earnings plug
+- VALUATION SUMMARY: EBITDA multiple valuation and investor value
+- KEY METRICS: EBITDA margin, net margin, ROE
+
+Critical quirks to preserve
+---------------------------
+1. The sheet name `INCOME STATEMENT ` has a trailing space.
+2. The model uses many direct cell links. Row and column positions matter.
+3. Some formulas do not exactly match the apparent label logic:
+   - INCOME STATEMENT!C8 = C3*C7
+   - INCOME STATEMENT!N12 breaks the usual tax pattern
+   - SOURCE_USE OF FUNDS row 5 says "(25%)" but directly links total investment
+4. BALANCE SHEET retained earnings is a plug:
+   retained earnings = total assets - equity
+5. ASSUMPTIONS_DATA row 35 contains an unlabeled formula. Keep only if full parity is required.
+
+Assumption system
+-----------------
+The assumptions sheet is both:
+- the user input layer, and
+- an internal calculation layer.
+
+This means assumptions must cascade with each other before they cascade to other sheets.
+
+Important internal assumption cascades
+--------------------------------------
+1. Fleet additions cascade:
+   truck additions -> trucks in operation
+
+2. Fleet scale cascade:
+   trucks in operation -> fleet km -> energy purchased -> energy cost
+
+3. Revenue cascade:
+   trucks in operation -> fleet trips -> chargeable tonnes
+   freight rate ETB -> freight rate USD
+   chargeable tonnes x USD rate -> total freight revenue
+
+4. Capex cascade:
+   unit truck cost + annual truck additions -> total truck capex
+   truck/software/hardware/reserve/contingency -> total investment
+
+Primary hardcoded base assumptions
+----------------------------------
+Key hardcoded inputs include:
+- D3:J3  Number of trucks added each year
+- C4     Swaps per truck per day
+- C6     Battery packs charged per charger per day
+- C8     Cost per truck
+- C10:D10  Fleet management software
+- C11:D11  Hardware and office equipment
+- C12    Operating reserve
+- C13:D13 Contingency reserve
+- C17    Average km per truck per year
+- C19    Energy used per km
+- D21:N21 Energy cost per kW
+- C24    Number of days per trip
+- C29    Average chargeable tonnes per trip
+- C31    Base freight rate per tonne in ETB
+
+Important derived assumption blocks
+-----------------------------------
+- C3 = total trucks added over build period
+- D16:N16 = trucks in operation
+- D18:N18 = total fleet km
+- D20:N20 = total energy purchased
+- D22:N22 = total energy cost
+- C25 = operating days in year
+- C26 = trips per truck per year
+- D27:N27 = fleet trips per year
+- D30:N30 = chargeable tonnes of fleet per year
+- C32:N32 = freight rate per tonne in USD
+- D33:N33 = total freight revenue
+- D14:N14 = total investment
+
+Cross-sheet cascade
+-------------------
+1. ASSUMPTIONS_DATA -> REVENUE PROJECTION
+   - tonnes, USD rate, revenue
+
+2. ASSUMPTIONS_DATA -> CAPEX & DEPRECIATION
+   - truck cost, software, hardware annual capex
+
+3. ASSUMPTIONS_DATA -> SOURCE_USE OF FUNDS
+   - total investment, reserve lines
+
+4. ASSUMPTIONS_DATA + REVENUE PROJECTION + CAPEX & DEPRECIATION -> INCOME STATEMENT 
+   - revenue
+   - energy cost
+   - depreciation
+   - opex growth / variable opex
+   - tax
+   - net income
+
+5. INCOME STATEMENT + CAPEX & DEPRECIATION + SOURCE_USE OF FUNDS -> CASH FLOW
+   - net income
+   - depreciation add-back
+   - capex outflow
+   - equity injection
+   - dividend and dividend tax
+   - closing cash
+
+6. CASH FLOW + CAPEX & DEPRECIATION + SOURCE_USE OF FUNDS -> BALANCE SHEET
+   - cash
+   - PP&E
+   - equity
+   - retained earnings plug
+
+7. INCOME STATEMENT + SOURCE_USE OF FUNDS -> VALUATION SUMMARY / KEY METRICS
+   - EBITDA
+   - investor stake value
+   - MOIC
+   - IRR
+   - EBITDA margin
+   - net margin
+   - ROE
+
+Replication requirements
+------------------------
+To pass replication:
+1. load all base assumption values exactly as in Excel
+2. preserve sheet names exactly
+3. preserve formula text exactly
+4. preserve blank cells where Excel leaves them blank
+5. recalculate recursively when any assumption changes
+6. validate outputs against the Excel base case
+
+Recommended validation targets
+------------------------------
+Base case outputs that should match Excel after initialization:
+
+- Revenue Projection / Revenue from Freight Charges
+  CY-2027  34,893,870.9677419
+  CY-2028  73,277,129.0322581
+  CY-2029 115,411,478.225807
+  CY-2030 169,270,168.064516
+  CY-2031 232,746,481.08871
+  CY-2032 307,225,355.037097
+  CY-2033 394,430,311.088711
+  CY-2034 433,873,342.197582
+  CY-2035 477,260,676.41734
+  CY-2036 524,986,744.059074
+  CY-2037 577,485,418.46498
+
+- Income Statement / EBITDA
+  CY-2026 0
+  CY-2027 5,209,048.38709672
+  CY-2028 13,842,866.1290324
+  CY-2029 21,418,890.6048391
+  CY-2030 33,334,372.8870966
+  CY-2031 47,346,762.7197575
+  CY-2032 63,741,886.7900807
+  CY-2033 82,878,011.2197582
+  CY-2034 89,672,820.341734
+  CY-2035 96,848,511.975908
+  CY-2036 104,383,454.693497
+  CY-2037 112,241,909.986847
+
+- Income Statement / Net Income
+  CY-2026 0
+  CY-2027 1,191,433.8709677
+  CY-2028 4,902,706.29032268
+  CY-2029 7,873,523.42338737
+  CY-2030 13,881,961.0209676
+  CY-2031 21,358,233.9038303
+  CY-2032 30,502,420.7530565
+  CY-2033 41,558,774.5204974
+  CY-2034 46,315,140.9058805
+  CY-2035 51,425,625.0498023
+  CY-2036 56,700,084.9521146
+  CY-2037 59,748,532.9638548
+
+- Cash Flow / Closing Cash
+  CY-2026 61,480,000
+  CY-2027 69,678,433.8709677
+  CY-2028 81,420,140.1612904
+  CY-2029 99,464,663.5846778
+  CY-2030 126,849,624.605645
+  CY-2031 165,042,858.509475
+  CY-2032 207,082,833.296028
+  CY-2033 210,081,793.475216
+  CY-2034 266,589,664.703989
+  CY-2035 326,613,755.885306
+  CY-2036 390,395,899.747021
+  CY-2037 456,300,062.817101
+
+Implementation note
+-------------------
+Use the JSON file as the machine-readable contract.
+It includes:
+- sheet metadata
+- all base assumption cells
+- row-level assumption definitions
+- cascade rules
+- baseline output targets
+- full formula map for every formula cell in the workbook
+
+End of guide.

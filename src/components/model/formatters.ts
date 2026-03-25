@@ -19,6 +19,26 @@ type FormatOptions = {
   fxRate?: number;
 };
 
+type CurrencyScale = {
+  divisor: number;
+  suffix: '' | 'M' | 'B' | 'T';
+  label: 'Units' | 'Millions' | 'Billions' | 'Trillions';
+  decimals: number;
+};
+
+const RAW_CURRENCY_SCALES: CurrencyScale[] = [
+  { divisor: 1_000_000_000_000, suffix: 'T', label: 'Trillions', decimals: 2 },
+  { divisor: 1_000_000_000, suffix: 'B', label: 'Billions', decimals: 2 },
+  { divisor: 1_000_000, suffix: 'M', label: 'Millions', decimals: 1 },
+  { divisor: 1, suffix: '', label: 'Units', decimals: 0 },
+];
+
+const MILLION_CURRENCY_SCALES: CurrencyScale[] = [
+  { divisor: 1_000_000, suffix: 'T', label: 'Trillions', decimals: 2 },
+  { divisor: 1_000, suffix: 'B', label: 'Billions', decimals: 2 },
+  { divisor: 1, suffix: 'M', label: 'Millions', decimals: 1 },
+];
+
 function compactNumber(value: number, decimals = 1) {
   return new Intl.NumberFormat('en-US', {
     notation: 'compact',
@@ -30,6 +50,63 @@ function signedNumber(value: number, decimals = 1) {
   return `${value >= 0 ? '+' : ''}${new Intl.NumberFormat('en-US', {
     maximumFractionDigits: decimals,
   }).format(value)}`;
+}
+
+function getCurrencyPrefix(displayCurrency: DisplayCurrency) {
+  return displayCurrency === 'USD' ? '$' : 'ETB ';
+}
+
+function resolveCurrencyScale(value: number, scales: CurrencyScale[]) {
+  const absoluteValue = Math.abs(value);
+  return scales.find((scale) => absoluteValue >= scale.divisor) ?? scales[scales.length - 1];
+}
+
+function formatScaledCurrency(
+  value: number,
+  displayCurrency: DisplayCurrency,
+  scale: CurrencyScale,
+) {
+  if (scale.suffix === '') {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: displayCurrency === 'USD' ? 'USD' : 'ETB',
+      maximumFractionDigits: 0,
+    }).format(value);
+  }
+
+  return `${getCurrencyPrefix(displayCurrency)}${(value / scale.divisor).toFixed(
+    scale.decimals,
+  )}${scale.suffix}`;
+}
+
+export function getCurrencyMagnitudeLabel(
+  format: Extract<DisplayFormat, 'currency' | 'currencyM'>,
+  values: number[],
+  options: FormatOptions = {},
+) {
+  const displayCurrency = options.displayCurrency ?? 'USD';
+
+  if (format === 'currencyM') {
+    const convertedValues = values.map((value) =>
+      convertCurrencyValue(value, 'USD', displayCurrency, options.fxRate),
+    );
+    return `${displayCurrency} ${
+      resolveCurrencyScale(
+        convertedValues.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0),
+        MILLION_CURRENCY_SCALES,
+      ).label
+    }`;
+  }
+
+  const convertedValues = values.map((value) =>
+    convertCurrencyValue(value, 'USD', displayCurrency, options.fxRate),
+  );
+  return `${displayCurrency} ${
+    resolveCurrencyScale(
+      convertedValues.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0),
+      RAW_CURRENCY_SCALES,
+    ).label
+  }`;
 }
 
 export function formatDisplayValue(
@@ -63,13 +140,11 @@ export function formatStatementValue(
   if (unit === '$' || unit === 'USD' || unit.startsWith('$') || unit.startsWith('ETB')) {
     const convertedValue = convertValueForDisplay(value, unit, options);
     const displayUnit = getDisplayUnit(unit, options.displayCurrency);
+    const displayCurrency = displayUnit === '$' ? 'USD' : displayUnit === 'ETB' ? 'ETB' : null;
 
-    if (displayUnit === '$' || displayUnit === 'ETB') {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: displayUnit === '$' ? 'USD' : 'ETB',
-        maximumFractionDigits: 0,
-      }).format(convertedValue);
+    if (displayCurrency) {
+      const scale = resolveCurrencyScale(convertedValue, RAW_CURRENCY_SCALES);
+      return formatScaledCurrency(convertedValue, displayCurrency, scale);
     }
 
     return `${displayUnit} ${new Intl.NumberFormat('en-US', {
@@ -117,8 +192,10 @@ export function formatDelta(
       displayCurrency,
       options.fxRate,
     );
-    const prefix = displayCurrency === 'USD' ? '$' : 'ETB ';
-    return `${value >= 0 ? '+' : '-'}${prefix}${Math.abs(convertedValue).toFixed(1)}m`;
+    const scale = resolveCurrencyScale(Math.abs(convertedValue), MILLION_CURRENCY_SCALES);
+    return `${value >= 0 ? '+' : '-'}${getCurrencyPrefix(displayCurrency)}${(
+      Math.abs(convertedValue) / scale.divisor
+    ).toFixed(scale.decimals)}${scale.suffix}`;
   }
 
   if (format === 'percent') {

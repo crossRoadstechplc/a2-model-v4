@@ -109,4 +109,12 @@ describe('Assumptions panel refinements', () => {
 
     expect(fxInput).toHaveValue('160.0');
   });
+
+  it('keeps the FX rate out of the Tax / FX assumption group because the dedicated currency control owns it', () => {
+    renderWithRouter(<AppRoutes />, '/assumptions');
+
+    expect(screen.queryByTestId('page-assumption-field-integrated.tax_fx.reference_fx_rate')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Reference FX rate/i, level: 4 })).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('display-currency-fx-rate-input').length).toBeGreaterThan(0);
+  });
 });

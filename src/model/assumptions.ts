@@ -42,6 +42,7 @@ export type AssumptionMetadata = {
   dependencyTag?: string;
   decimals: number;
   baseValue: number;
+  hiddenInUi?: boolean;
   defaultFavorite?: boolean;
   contexts: string[];
   source: 'reference' | 'extension';
@@ -865,6 +866,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     dependencyTag: 'FX',
     decimals: 1,
     baseValue: 155,
+    hiddenInUi: true,
     defaultFavorite: false,
     contexts: ['/', '/assumptions', '/corridor-view'],
     source: 'extension',
@@ -1086,7 +1088,9 @@ export const baseAssumptionValues = assumptionMetadata.reduce<AssumptionValueMap
 );
 
 export function getAssumptionsForGroup(groupId: AssumptionGroupId) {
-  return assumptionMetadata.filter((item) => item.groupId === groupId);
+  return assumptionMetadata.filter(
+    (item) => item.groupId === groupId && !item.hiddenInUi,
+  );
 }
 
 export function getAssumptionGroup(groupId: AssumptionGroupId) {
@@ -1165,7 +1169,7 @@ export function getVisibleAssumptionMetadata(params: {
   return assumptionGroups
     .map((group) => {
       const items = assumptionMetadata.filter((item) => {
-        if (item.groupId !== group.id) {
+        if (item.groupId !== group.id || item.hiddenInUi) {
           return false;
         }
 

@@ -32,7 +32,7 @@ describe('KpiCardGrid', () => {
       />,
     );
 
-    expect(screen.getByTestId('kpi-card-revenue-value')).toHaveTextContent('$577.5m');
+    expect(screen.getByTestId('kpi-card-revenue-value')).toHaveTextContent('$577.5M');
     expect(screen.getByTestId('kpi-card-revenue')).toHaveAttribute(
       'data-state',
       'changed',
@@ -70,7 +70,7 @@ describe('KpiCardGrid', () => {
           {
             id: 'revenue',
             label: 'Revenue',
-            value: 10,
+            value: 700,
             description: 'Latest revenue.',
             format: 'currencyM',
           },
@@ -78,6 +78,6 @@ describe('KpiCardGrid', () => {
       />,
     );
 
-    expect(screen.getByTestId('kpi-card-revenue-value')).toHaveTextContent('ETB 500.0m');
+    expect(screen.getByTestId('kpi-card-revenue-value')).toHaveTextContent('ETB 35.00B');
   });
 });

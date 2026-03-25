@@ -130,6 +130,20 @@ function getCompactCurrencyPrefix(displayCurrency: DisplayCurrency) {
   return displayCurrency === 'USD' ? '$' : 'ETB ';
 }
 
+function getMillionScale(value: number) {
+  const absoluteValue = Math.abs(value);
+
+  if (absoluteValue >= 1_000_000) {
+    return { divisor: 1_000_000, suffix: 'T', decimals: 2 };
+  }
+
+  if (absoluteValue >= 1_000) {
+    return { divisor: 1_000, suffix: 'B', decimals: 2 };
+  }
+
+  return { divisor: 1, suffix: 'M', decimals: 1 };
+}
+
 export function formatDisplayCurrencyValue(
   value: number,
   format: 'currency' | 'currencyM',
@@ -142,7 +156,10 @@ export function formatDisplayCurrencyValue(
       : convertCurrencyValue(value, 'USD', displayCurrency, options.fxRate);
 
   if (format === 'currencyM') {
-    return `${getCompactCurrencyPrefix(displayCurrency)}${convertedValue.toFixed(1)}m`;
+    const scale = getMillionScale(convertedValue);
+    return `${getCompactCurrencyPrefix(displayCurrency)}${(
+      convertedValue / scale.divisor
+    ).toFixed(scale.decimals)}${scale.suffix}`;
   }
 
   return new Intl.NumberFormat('en-US', {

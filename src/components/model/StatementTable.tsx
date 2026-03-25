@@ -1,6 +1,7 @@
 import { cn } from '../../lib/cn';
 import { useDisplayCurrency } from '../../hooks/useDisplayCurrency';
 import type { PeriodizedStatement } from '../../engine/a2Fleet';
+import { getDisplayUnit } from '../../model/displayCurrency';
 import { formatStatementValue, hasMeaningfulChange } from './formatters';
 
 type StatementTableProps = {
@@ -63,7 +64,7 @@ export function StatementTable({
                   <div>
                     <p className="font-medium text-app-text">{row.label}</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.14em] text-app-subtle">
-                      {row.unit}
+                      {getDisplayUnit(row.unit, displayCurrency)}
                     </p>
                   </div>
                 </th>

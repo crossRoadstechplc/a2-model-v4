@@ -2,7 +2,11 @@ import { cn } from '../../lib/cn';
 import { useDisplayCurrency } from '../../hooks/useDisplayCurrency';
 import { StatusBadge } from '../ui/StatusBadge';
 import type { TrendSeries } from './a2FleetViewModel';
-import { formatDisplayValue, hasMeaningfulChange } from './formatters';
+import {
+  formatDisplayValue,
+  getCurrencyMagnitudeLabel,
+  hasMeaningfulChange,
+} from './formatters';
 
 type TrendChartCardProps = {
   title: string;
@@ -71,23 +75,6 @@ function getTickValues(minValue: number, maxValue: number) {
   return Array.from({ length: steps + 1 }, (_, index) => minValue + stepSize * index);
 }
 
-function getAxisLabel(format: TrendSeries['format'], displayCurrency: 'USD' | 'ETB') {
-  switch (format) {
-    case 'currency':
-      return displayCurrency;
-    case 'currencyM':
-      return `${displayCurrency} millions`;
-    case 'percent':
-      return 'Percent';
-    case 'multiple':
-      return 'Multiple';
-    case 'integer':
-      return 'Count';
-    default:
-      return 'Value';
-  }
-}
-
 export function TrendChartCard({
   title,
   description,
@@ -109,7 +96,19 @@ export function TrendChartCard({
     );
   });
   const xLabelInterval = periods.length > 6 ? 2 : 1;
-  const axisLabel = getAxisLabel(series[0]?.format ?? 'number', displayCurrency);
+  const axisLabel =
+    series[0]?.format === 'currency' || series[0]?.format === 'currencyM'
+      ? getCurrencyMagnitudeLabel(series[0].format, allValues, {
+          displayCurrency,
+          fxRate,
+        })
+      : series[0]?.format === 'percent'
+        ? 'Percent'
+        : series[0]?.format === 'multiple'
+          ? 'Multiple'
+          : series[0]?.format === 'integer'
+            ? 'Count'
+            : 'Value';
 
   return (
     <article

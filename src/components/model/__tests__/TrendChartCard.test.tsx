@@ -51,7 +51,7 @@ describe('TrendChartCard', () => {
     const legend = screen.getByTestId('trend-card-legend');
     expect(within(legend).getByText('Revenue')).toBeInTheDocument();
     expect(within(legend).getByText('EBITDA')).toBeInTheDocument();
-    expect(screen.getByText('USD millions')).toBeInTheDocument();
+    expect(screen.getByText('USD Millions')).toBeInTheDocument();
     expect(screen.getAllByText('CY-2028').length).toBeGreaterThan(0);
   });
 });

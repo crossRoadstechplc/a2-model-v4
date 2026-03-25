@@ -1,5 +1,6 @@
 import type { AssumptionValueMap } from '../../model/assumptions';
 import {
+  buildComputedReturnsSummary,
   calculateIrr,
   calculateMoic,
   calculatePaybackPeriod,
@@ -160,8 +161,10 @@ function getRowValues(statement: PeriodizedStatement, key: string) {
 }
 
 function buildFleetReturnsSummary(output: {
+  assumptions: AssumptionValueMap;
   sourceUseOfFunds: PeriodizedStatement;
   incomeStatement: PeriodizedStatement;
+  cashFlow: PeriodizedStatement;
   valuationSummary: PeriodizedStatement;
 }) {
   const investorSubscription = getRowValues(
@@ -176,32 +179,59 @@ function buildFleetReturnsSummary(output: {
     output.valuationSummary,
     'investor_25_stake_value',
   );
+  const enterpriseValues = getRowValues(output.valuationSummary, 'enterprise_value');
+  const netCashFromOperations = getRowValues(
+    output.cashFlow,
+    'net_cash_from_operations',
+  );
+  const netCashFromInvesting = getRowValues(
+    output.cashFlow,
+    'net_cash_from_investing',
+  );
   const terminalStakeValue =
     terminalStakeValues[terminalStakeValues.length - 1] ?? null;
+  const terminalEnterpriseValue =
+    enterpriseValues[enterpriseValues.length - 1] ?? null;
+  const projectCashFlowSeries = netCashFromOperations.map((value, index) => {
+    const baseValue = value + (netCashFromInvesting[index] ?? 0);
+    return index === netCashFromOperations.length - 1 && terminalEnterpriseValue
+      ? baseValue + terminalEnterpriseValue
+      : baseValue;
+  });
   const investorCashFlowSeries = investorNetIncome.map((value, index) => {
     const baseValue = index === 0 ? -Math.abs(investorSubscription[index] ?? 0) : value;
     return index === investorNetIncome.length - 1 && terminalStakeValue
       ? baseValue + terminalStakeValue
       : baseValue;
   });
+  const projectIrr = calculateIrr(projectCashFlowSeries);
   const equityIrr = calculateIrr(investorCashFlowSeries);
   const paybackPeriod = calculatePaybackPeriod(investorCashFlowSeries);
   const moic = calculateMoic(investorCashFlowSeries);
-
-  return {
+  const discountRatePct = output.assumptions['integrated.global.discount_rate_pct'] ?? null;
+  const baseSummary = buildComputedReturnsSummary({
     title: 'Returns / Valuation',
     basisLabel:
-      'Equity IRR is calculated from the full investor cash flow stream: initial subscription outflow, annual investor cash participation, and terminal stake value in the final period.',
+      'Project IRR uses net cash from operations plus investing cash flow and terminal enterprise value. Equity IRR uses the investor subscription outflow, annual investor cash participation, and final-period stake value.',
+    projectCashFlowSeries,
+    equityCashFlowSeries: investorCashFlowSeries,
+    discountRatePct,
+    npvDescription:
+      'NPV uses the currently configured discount rate against the modeled investor equity cash flow stream.',
+  });
+
+  return {
+    ...baseSummary,
     cashFlowSeries: investorCashFlowSeries,
     metrics: [
       {
         id: 'project_irr',
         label: 'Project IRR',
-        value: null,
+        value: projectIrr !== null ? projectIrr * 100 : null,
         format: 'percent',
         description:
-          'Project-level IRR remains pending until a dedicated unlevered project cash flow stream is modeled.',
-        status: 'pending' as const,
+          'Cumulative project return from operating and investing cash flows plus terminal enterprise value.',
+        status: projectIrr !== null ? ('ready' as const) : ('pending' as const),
       },
       {
         id: 'equity_irr',
@@ -212,13 +242,7 @@ function buildFleetReturnsSummary(output: {
         status: equityIrr !== null ? ('ready' as const) : ('pending' as const),
       },
       {
-        id: 'npv',
-        label: 'NPV',
-        value: null,
-        format: 'currencyM',
-        description:
-          'NPV remains pending until the product settles a formal discount-rate policy for this entity.',
-        status: 'pending' as const,
+        ...baseSummary.metrics.find((metric) => metric.id === 'npv')!,
       },
       {
         id: 'payback_period',
@@ -368,8 +392,10 @@ export function runA2FleetWorkbook(
     valuationSummary: valuationSummaryResult.statement,
     keyMetrics: keyMetricsResult.statement,
     returnsSummary: buildFleetReturnsSummary({
+      assumptions,
       sourceUseOfFunds: sourceUseOfFundsResult.statement,
       incomeStatement: incomeStatementResult.statement,
+      cashFlow: cashFlowResult.statement,
       valuationSummary: valuationSummaryResult.statement,
     }),
   };

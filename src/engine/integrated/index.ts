@@ -1,6 +1,6 @@
 import type { AssumptionValueMap } from '../../model/assumptions';
 import type { A2FleetWorkbookOutput } from '../a2Fleet';
-import { buildPendingReturnsSummary } from '../returns';
+import { buildComputedReturnsSummary } from '../returns';
 import { runA2FleetWorkbook } from '../a2Fleet';
 import { calculateEnergyModule } from './energy';
 import { addSeries, buildStatement, clamp, getAssumption, subtractSeries } from './helpers';
@@ -183,6 +183,13 @@ function buildConsolidatedOutput(params: {
     energy.capexDepreciation.rows.find((row) => row.key === 'net_assets')?.values ?? [],
   );
   const consolidatedEquity = addSeries(fleetEquity, consolidatedNetIncome);
+  const discountRatePct = getAssumption(assumptions, 'integrated.global.discount_rate_pct');
+  const consolidatedReturnCashFlowSeries = consolidatedNetIncome.map((value, index) => {
+    const baseValue = value - consolidatedCapex[index];
+    return index === consolidatedNetIncome.length - 1
+      ? baseValue + (consolidatedEquity[index] ?? 0)
+      : baseValue;
+  });
 
   return {
     periods,
@@ -345,10 +352,20 @@ function buildConsolidatedOutput(params: {
         description: `Consolidated scaffold total assets in ${periods[periods.length - 1]}.`,
       },
     ],
-    returnsSummary: buildPendingReturnsSummary(
-      'Returns / Valuation',
-      'Consolidated returns remain pending until the integrated model has a complete consolidated investment cash flow, financing stack, and terminal value policy.',
-    ),
+    returnsSummary: buildComputedReturnsSummary({
+      title: 'Returns / Valuation',
+      basisLabel:
+        'Consolidated returns currently use a first-pass cash flow basis: consolidated net income less expansion capex, with terminal consolidated equity carried in the final period. Equity IRR currently mirrors that same basis until a full integrated financing stack is modeled.',
+      projectCashFlowSeries: consolidatedReturnCashFlowSeries,
+      discountRatePct,
+      fallbackInitialInvestment:
+        consolidatedCapex.find((value) => value > 0) ??
+        consolidatedAssets.find((value) => value > 0) ??
+        0,
+      useProjectSeriesForEquity: true,
+      npvDescription:
+        'NPV uses the current integrated discount-rate assumption against the provisional consolidated cash flow stream.',
+    }),
   };
 }
 

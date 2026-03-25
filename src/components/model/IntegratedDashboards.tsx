@@ -394,7 +394,7 @@ export function PlatformDashboard() {
 
           <SectionAccordion
             title="Returns / Valuation"
-            description="Structured return metrics are reserved here once Platform-specific investor cash flows are fully modeled."
+            description="First-pass cumulative return metrics are shown here now, with room for a fuller Platform financing and investor-distribution layer later."
             defaultOpen={false}
           >
             <ReturnsMetricGrid
@@ -582,7 +582,7 @@ export function EnergyDashboard() {
 
           <SectionAccordion
             title="Returns / Valuation"
-            description="Structured return metrics will populate here once Energy-specific investment cash flows are implemented."
+            description="First-pass cumulative return metrics are shown here now, with room for a fuller Energy investment case and financing layer later."
             defaultOpen={false}
           >
             <ReturnsMetricGrid
@@ -711,7 +711,7 @@ export function ConsolidatedDashboard() {
 
           <SectionAccordion
             title="Returns / Valuation"
-            description="Consolidated return metrics are reserved here once the full integrated investment case is modeled."
+            description="First-pass cumulative return metrics are shown here now, with room for a fuller integrated financing and distribution model later."
             defaultOpen={false}
           >
             <ReturnsMetricGrid

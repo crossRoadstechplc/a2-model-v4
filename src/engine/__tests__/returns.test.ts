@@ -1,6 +1,8 @@
 import {
+  buildComputedReturnsSummary,
   buildPendingReturnsSummary,
   calculateIrr,
+  calculateNpv,
   calculateMoic,
   calculatePaybackPeriod,
 } from '../returns';
@@ -17,6 +19,25 @@ describe('returns helpers', () => {
 
     expect(calculatePaybackPeriod(series)).toBeCloseTo(3.125, 3);
     expect(calculateMoic(series)).toBeCloseTo(1.7, 6);
+    expect(calculateNpv(series, 13)).toBeCloseTo(17.98, 2);
+  });
+
+  it('builds computed return summaries when a first-pass cash flow stream exists', () => {
+    const summary = buildComputedReturnsSummary({
+      title: 'Returns / Valuation',
+      basisLabel: 'Test basis.',
+      projectCashFlowSeries: [-100, 20, 30, 40, 80],
+      discountRatePct: 13,
+      useProjectSeriesForEquity: true,
+    });
+
+    expect(summary.metrics.find((metric) => metric.id === 'project_irr')?.status).toBe(
+      'ready',
+    );
+    expect(summary.metrics.find((metric) => metric.id === 'equity_irr')?.status).toBe(
+      'ready',
+    );
+    expect(summary.metrics.find((metric) => metric.id === 'npv')?.value).not.toBeNull();
   });
 
   it('builds pending return summaries without fake values', () => {

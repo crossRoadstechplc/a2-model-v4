@@ -30,6 +30,9 @@ describe('A2 Fleet dashboard integration', () => {
     });
 
     expect(screen.getByText('Returns / Valuation')).toBeInTheDocument();
+    expect(screen.getByTestId('returns-card-project_irr-value')).not.toHaveTextContent(
+      'Pending',
+    );
     expect(screen.getByTestId('returns-card-equity_irr-value')).not.toHaveTextContent(
       'Pending',
     );

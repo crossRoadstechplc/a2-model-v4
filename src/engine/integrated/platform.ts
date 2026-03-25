@@ -1,6 +1,6 @@
 import type { A2FleetWorkbookOutput } from '../a2Fleet';
 import { buildPlatformCapacityFromFleet } from '../platformCapacity';
-import { buildPendingReturnsSummary } from '../returns';
+import { buildComputedReturnsSummary } from '../returns';
 import {
   addSeries,
   buildNetAssetSeries,
@@ -148,6 +148,11 @@ export function calculatePlatformModule({
   const ebitda = totalRevenue.map((value, index) => value - opex[index]);
   const ebit = ebitda.map((value, index) => value - depreciation[index]);
   const netAssets = buildNetAssetSeries(capex, depreciation);
+  const discountRatePct = getAssumption(assumptions, 'integrated.global.discount_rate_pct');
+  const projectCashFlowSeries = ebitda.map((value, index) => {
+    const baseValue = value - capex[index];
+    return index === ebitda.length - 1 ? baseValue + (netAssets[index] ?? 0) : baseValue;
+  });
   const breakevenRevenue = opex.map(
     (value, index) => (value + depreciation[index]) * (1 + breakevenBuffer),
   );
@@ -254,9 +259,19 @@ export function calculatePlatformModule({
         values: netAssets,
       },
     ]),
-    returnsSummary: buildPendingReturnsSummary(
-      'Returns / Valuation',
-      'Platform returns remain pending until dedicated investor cash flow, terminal value, and financing logic are implemented for the Platform entity.',
+    returnsSummary: buildComputedReturnsSummary(
+      {
+        title: 'Returns / Valuation',
+        basisLabel:
+          'Platform returns currently use a first-pass project cash flow basis: EBITDA less capex, with terminal net asset value added in the final period. Equity IRR currently mirrors that same basis until entity-specific financing logic is implemented.',
+        projectCashFlowSeries,
+        discountRatePct,
+        fallbackInitialInvestment:
+          capex.find((value) => value > 0) ?? netAssets.find((value) => value > 0) ?? 0,
+        useProjectSeriesForEquity: true,
+        npvDescription:
+          'NPV uses the current integrated discount-rate assumption against the provisional Platform cash flow stream.',
+      },
     ),
     kpis: [
       {

@@ -17,6 +17,17 @@ export type EntityReturnsSummary = {
   metrics: ReturnMetricCard[];
 };
 
+type ComputedReturnsSummaryParams = {
+  title: string;
+  basisLabel: string;
+  projectCashFlowSeries?: number[] | null;
+  equityCashFlowSeries?: number[] | null;
+  discountRatePct?: number | null;
+  fallbackInitialInvestment?: number | null;
+  useProjectSeriesForEquity?: boolean;
+  npvDescription?: string;
+};
+
 export function calculateIrr(cashflows: number[], guess = 0.1) {
   const hasPositive = cashflows.some((value) => value > 0);
   const hasNegative = cashflows.some((value) => value < 0);
@@ -140,6 +151,123 @@ export function calculateMoic(cashflows: number[]) {
   }
 
   return returnedCapital / investedCapital;
+}
+
+export function calculateNpv(cashflows: number[], discountRatePct: number) {
+  const discountRate = discountRatePct / 100;
+
+  return cashflows.reduce((total, cashflow, period) => {
+    return total + cashflow / (1 + discountRate) ** period;
+  }, 0);
+}
+
+function seedInitialInvestment(
+  cashflows: number[] | null | undefined,
+  fallbackInitialInvestment?: number | null,
+) {
+  if (!cashflows || cashflows.length === 0) {
+    return null;
+  }
+
+  const seeded = [...cashflows];
+  const hasNegative = seeded.some((value) => value < 0);
+  const safeFallback =
+    fallbackInitialInvestment && Number.isFinite(fallbackInitialInvestment)
+      ? Math.abs(fallbackInitialInvestment)
+      : 0;
+
+  if (!hasNegative && safeFallback > 0) {
+    seeded[0] -= safeFallback;
+  }
+
+  return seeded;
+}
+
+export function buildComputedReturnsSummary({
+  title,
+  basisLabel,
+  projectCashFlowSeries,
+  equityCashFlowSeries,
+  discountRatePct,
+  fallbackInitialInvestment,
+  useProjectSeriesForEquity = false,
+  npvDescription,
+}: ComputedReturnsSummaryParams): EntityReturnsSummary {
+  const seededProjectSeries = seedInitialInvestment(
+    projectCashFlowSeries,
+    fallbackInitialInvestment,
+  );
+  const seededEquitySeries = seedInitialInvestment(
+    equityCashFlowSeries ??
+      (useProjectSeriesForEquity ? seededProjectSeries ?? undefined : undefined),
+    fallbackInitialInvestment,
+  );
+  const primarySeries = seededEquitySeries ?? seededProjectSeries;
+  const projectIrr = seededProjectSeries ? calculateIrr(seededProjectSeries) : null;
+  const equityIrr = seededEquitySeries ? calculateIrr(seededEquitySeries) : null;
+  const paybackPeriod = primarySeries ? calculatePaybackPeriod(primarySeries) : null;
+  const moic = primarySeries ? calculateMoic(primarySeries) : null;
+  const npv =
+    primarySeries &&
+    discountRatePct !== null &&
+    discountRatePct !== undefined &&
+    Number.isFinite(discountRatePct)
+      ? calculateNpv(primarySeries, discountRatePct)
+      : null;
+
+  return {
+    title,
+    basisLabel,
+    cashFlowSeries: primarySeries,
+    metrics: [
+      {
+        id: 'project_irr',
+        label: 'Project IRR',
+        value: projectIrr !== null ? projectIrr * 100 : null,
+        format: 'percent',
+        description:
+          'Return across the currently modeled project-level cash flow stream.',
+        status: projectIrr !== null ? 'ready' : 'pending',
+      },
+      {
+        id: 'equity_irr',
+        label: 'Equity IRR',
+        value: equityIrr !== null ? equityIrr * 100 : null,
+        format: 'percent',
+        description: useProjectSeriesForEquity
+          ? 'Currently mirrors the project cash flow basis until entity-specific financing logic is separated.'
+          : 'Return across the currently modeled equity cash flow stream.',
+        status: equityIrr !== null ? 'ready' : 'pending',
+      },
+      {
+        id: 'npv',
+        label: 'NPV',
+        value: npv !== null ? npv / 1_000_000 : null,
+        format: 'currencyM',
+        description:
+          npvDescription ??
+          'Net present value using the current modeled cash flow stream and discount-rate assumption.',
+        status: npv !== null ? 'ready' : 'pending',
+      },
+      {
+        id: 'payback_period',
+        label: 'Payback Period',
+        value: paybackPeriod,
+        format: 'number',
+        description:
+          'Years required for cumulative modeled cash flows to recover the initial investment.',
+        status: paybackPeriod !== null ? 'ready' : 'pending',
+      },
+      {
+        id: 'moic',
+        label: 'MOIC',
+        value: moic,
+        format: 'multiple',
+        description: 'Multiple of invested capital across the same modeled cash flow basis.',
+        status: moic !== null ? 'ready' : 'pending',
+      },
+    ],
+  };
 }
 
 export function buildPendingReturnsSummary(

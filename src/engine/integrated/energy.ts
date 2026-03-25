@@ -1,5 +1,5 @@
 import type { A2FleetWorkbookOutput } from '../a2Fleet';
-import { buildPendingReturnsSummary } from '../returns';
+import { buildComputedReturnsSummary } from '../returns';
 import {
   addSeries,
   buildNetAssetSeries,
@@ -143,6 +143,7 @@ export function calculateEnergyModule({
 
   const depreciation = calculateLinearDepreciation(capex, assetLifeYears);
   const netAssets = buildNetAssetSeries(capex, depreciation);
+  const discountRatePct = getAssumption(assumptions, 'integrated.global.discount_rate_pct');
 
   const opex = periods.map((_period, index) => {
     const maintenance = netAssets[index] * maintenancePct;
@@ -152,6 +153,10 @@ export function calculateEnergyModule({
 
   const ebitda = totalRevenue.map((value, index) => value - opex[index]);
   const ebit = ebitda.map((value, index) => value - depreciation[index]);
+  const projectCashFlowSeries = ebitda.map((value, index) => {
+    const baseValue = value - capex[index];
+    return index === ebitda.length - 1 ? baseValue + (netAssets[index] ?? 0) : baseValue;
+  });
   const serviceFactorSeries = periods.map((_period, index) => {
     if (index === 0) {
       return 1;
@@ -272,10 +277,18 @@ export function calculateEnergyModule({
         values: netAssets,
       },
     ]),
-    returnsSummary: buildPendingReturnsSummary(
-      'Returns / Valuation',
-      'Energy returns remain pending until entity-specific investor cash flow and terminal value logic are implemented for the Energy business.',
-    ),
+    returnsSummary: buildComputedReturnsSummary({
+      title: 'Returns / Valuation',
+      basisLabel:
+        'Energy returns currently use a first-pass project cash flow basis: EBITDA less capex, with terminal net asset value added in the final period. Equity IRR currently mirrors that same basis until Energy financing and investor distributions are modeled separately.',
+      projectCashFlowSeries,
+      discountRatePct,
+      fallbackInitialInvestment:
+        capex.find((value) => value > 0) ?? netAssets.find((value) => value > 0) ?? 0,
+      useProjectSeriesForEquity: true,
+      npvDescription:
+        'NPV uses the current integrated discount-rate assumption against the provisional Energy cash flow stream.',
+    }),
     kpis: [
       {
         id: 'energy_revenue',

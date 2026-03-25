@@ -14,7 +14,7 @@ export function PrimarySidebar() {
     <aside
       className={cn(
         'hidden shrink-0 border-r border-app-border bg-app-panel transition-[width] duration-300 lg:flex lg:flex-col lg:overflow-hidden',
-        isOpen ? 'w-[17.5rem]' : 'w-[5.25rem]',
+        isOpen ? 'w-[20rem]' : 'w-[6.75rem]',
       )}
       data-testid="primary-sidebar"
       data-state={isOpen ? 'open' : 'closed'}
@@ -31,7 +31,7 @@ export function PrimarySidebar() {
               <img
                 src="/logo.png"
                 alt="A2 Model logo"
-                className="h-14 w-14 shrink-0 rounded-[1.35rem] border border-app-border bg-white object-contain p-1.5 shadow-sm"
+                className="h-28 w-28 shrink-0 rounded-[1.75rem] border border-app-border bg-white object-contain p-2 shadow-sm"
               />
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-app-subtle">
@@ -51,7 +51,7 @@ export function PrimarySidebar() {
             <img
               src="/logo.png"
               alt="A2 Model logo"
-              className="h-12 w-12 rounded-[1.35rem] border border-app-border bg-white object-contain p-1.5 shadow-sm"
+              className="h-24 w-24 rounded-[1.75rem] border border-app-border bg-white object-contain p-2 shadow-sm"
             />
           </div>
         )}

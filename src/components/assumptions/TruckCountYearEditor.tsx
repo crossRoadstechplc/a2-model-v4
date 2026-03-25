@@ -205,11 +205,6 @@ export function TruckCountYearEditor({
                 fxRate,
               })}
             </p>
-            {selectedDefinition.workbook ? (
-              <p>
-                Workbook: {selectedDefinition.workbook.sheet}!{selectedDefinition.workbook.cell}
-              </p>
-            ) : null}
           </div>
         </div>
 

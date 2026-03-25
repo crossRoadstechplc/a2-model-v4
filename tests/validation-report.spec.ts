@@ -1,9 +1,19 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function dismissWalkthroughIfVisible(page: Page) {
+  const walkthrough = page.getByTestId('app-walkthrough');
+
+  if (await walkthrough.isVisible().catch(() => false)) {
+    await page.getByTestId('walkthrough-close').click();
+    await expect(walkthrough).toBeHidden();
+  }
+}
 
 test('validation report renders the workbook baseline reconciliation gate', async ({
   page,
 }) => {
   await page.goto('/validation-report');
+  await dismissWalkthroughIfVisible(page);
 
   await expect(
     page.getByRole('heading', { name: 'Validation Report', level: 1 }),

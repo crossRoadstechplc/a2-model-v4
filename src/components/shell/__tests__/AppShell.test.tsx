@@ -17,10 +17,6 @@ describe('App shell layout', () => {
       'data-state',
       'open',
     );
-    expect(screen.getByTestId('utility-panel')).toHaveAttribute(
-      'data-state',
-      'closed',
-    );
     expect(screen.getByText('Overview')).toBeInTheDocument();
     expect(screen.getByText('Entities')).toBeInTheDocument();
     expect(screen.queryByTestId('nav-link-assumptions')).not.toBeInTheDocument();

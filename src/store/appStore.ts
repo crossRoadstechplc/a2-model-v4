@@ -68,7 +68,6 @@ type UISlice = {
   displayCurrency: DisplayCurrency;
   isPrimarySidebarOpen: boolean;
   isAssumptionsOpen: boolean;
-  isUtilityPanelOpen: boolean;
   assumptionsSidebarWidth: number;
   assumptionSidebarMode: AssumptionSidebarMode;
   selectedAssumptionKey: string | null;
@@ -116,7 +115,6 @@ export type AppStoreState = {
   toggleTheme: () => void;
   togglePrimarySidebar: () => void;
   toggleAssumptions: () => void;
-  toggleUtilityPanel: () => void;
   setAssumptionsSidebarWidth: (width: number) => void;
   setAssumptionSidebarMode: (mode: AssumptionSidebarMode) => void;
   openWalkthrough: () => void;
@@ -223,7 +221,6 @@ function buildInitialState(): Omit<
   | 'toggleTheme'
   | 'togglePrimarySidebar'
   | 'toggleAssumptions'
-  | 'toggleUtilityPanel'
   | 'setAssumptionsSidebarWidth'
   | 'setAssumptionSidebarMode'
   | 'openWalkthrough'
@@ -290,15 +287,14 @@ function buildInitialState(): Omit<
       dirtyIds: [],
       compareIds: [],
     },
-    ui: {
-      theme: 'light',
-      displayCurrency: 'USD',
-      isPrimarySidebarOpen: true,
-      isAssumptionsOpen: true,
-      isUtilityPanelOpen: false,
-      assumptionsSidebarWidth: ASSUMPTIONS_SIDEBAR_WIDTH.default,
-      assumptionSidebarMode: 'context',
-      selectedAssumptionKey: null,
+      ui: {
+        theme: 'light',
+        displayCurrency: 'USD',
+        isPrimarySidebarOpen: true,
+        isAssumptionsOpen: true,
+        assumptionsSidebarWidth: ASSUMPTIONS_SIDEBAR_WIDTH.default,
+        assumptionSidebarMode: 'context',
+        selectedAssumptionKey: null,
       selectedKpiId: null,
       isWalkthroughOpen: true,
       walkthroughStep: 0,
@@ -480,13 +476,6 @@ export const useAppStore = create<AppStoreState>()(
           ui: {
             ...state.ui,
             isAssumptionsOpen: !state.ui.isAssumptionsOpen,
-          },
-        })),
-      toggleUtilityPanel: () =>
-        set((state) => ({
-          ui: {
-            ...state.ui,
-            isUtilityPanelOpen: !state.ui.isUtilityPanelOpen,
           },
         })),
       setAssumptionsSidebarWidth: (width) =>
@@ -1072,7 +1061,6 @@ export const useAppStore = create<AppStoreState>()(
           displayCurrency: state.ui.displayCurrency,
           isPrimarySidebarOpen: state.ui.isPrimarySidebarOpen,
           isAssumptionsOpen: state.ui.isAssumptionsOpen,
-          isUtilityPanelOpen: state.ui.isUtilityPanelOpen,
           assumptionsSidebarWidth: state.ui.assumptionsSidebarWidth,
           assumptionSidebarMode: state.ui.assumptionSidebarMode,
         },

@@ -37,8 +37,8 @@ describe('Integrity Checks integration', () => {
 
     expect(screen.getByRole('heading', { name: 'Integrity Checks', level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId('run-state-badge')).toHaveTextContent('Stale');
-    fireEvent.click(screen.getByTestId('utility-toggle'));
-    expect(screen.getByTestId('utility-severity-warning')).toBeInTheDocument();
+    expect(screen.getByTestId('integrity-group-warnings')).toBeInTheDocument();
+    expect(screen.getByText(/checks currently grouped under warnings/i)).toBeInTheDocument();
   });
 
   it('surfaces platform capacity warnings when the generated policy is exceeded', () => {

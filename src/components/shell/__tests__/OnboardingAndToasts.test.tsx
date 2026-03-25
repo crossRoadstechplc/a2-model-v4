@@ -1,9 +1,6 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
-import {
-  WALKTHROUGH_STEP_COUNT,
-  walkthroughSteps,
-} from '../../../app/walkthroughContent';
+import { WALKTHROUGH_STEP_COUNT } from '../../../app/walkthroughContent';
 import { AppRoutes } from '../../../app/AppRoutes';
 import {
   MOCK_CALCULATION_DELAY_MS,
@@ -12,10 +9,6 @@ import {
 import { renderWithRouter } from '../../../test/renderApp';
 
 describe('walkthrough and calculation notifications', () => {
-  const utilityPanelStepIndex = walkthroughSteps.findIndex(
-    (step) => step.selector === '[data-testid="utility-panel"]',
-  );
-
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -61,17 +54,6 @@ describe('walkthrough and calculation notifications', () => {
 
     expect(screen.getByTestId('app-walkthrough')).toBeInTheDocument();
     expect(screen.getByText(/Primary navigation/i)).toBeInTheDocument();
-  });
-
-  it('opens the utility panel when the walkthrough reaches the utility explanation step', () => {
-    renderWithRouter(<AppRoutes />);
-
-    expect(screen.getByTestId('utility-panel')).toHaveAttribute('data-state', 'closed');
-
-    fireEvent.click(screen.getByTestId(`walkthrough-step-${utilityPanelStepIndex}`));
-
-    expect(screen.getByText(/Utility explanation panel/i)).toBeInTheDocument();
-    expect(screen.getByTestId('utility-panel')).toHaveAttribute('data-state', 'open');
   });
 
   it('stacks recalculation toasts, lists affected areas, and supports dismissing all at once', () => {

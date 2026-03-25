@@ -6,7 +6,6 @@ import { AppWalkthrough } from './AppWalkthrough';
 import { CalculationToastStack } from './CalculationToastStack';
 import { PrimarySidebar } from './PrimarySidebar';
 import { TopHeader } from './TopHeader';
-import { UtilityPanel } from './UtilityPanel';
 import { useEffect } from 'react';
 
 export function AppShell() {
@@ -34,7 +33,6 @@ export function AppShell() {
             >
               <Outlet />
             </main>
-            <UtilityPanel />
           </div>
         </div>
       </div>

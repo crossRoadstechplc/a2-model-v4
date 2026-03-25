@@ -86,7 +86,7 @@ export const assumptionGroups: AssumptionGroup[] = [
     id: 'fleet',
     title: 'Fleet',
     description:
-      'Fleet build, utilization, and freight throughput assumptions derived from the replication reference.',
+      'Fleet build, utilization, and freight throughput assumptions used across the operating model.',
     contexts: ['/', '/assumptions', '/a2-fleet', '/corridor-view'],
     source: 'reference',
   },
@@ -94,7 +94,7 @@ export const assumptionGroups: AssumptionGroup[] = [
     id: 'platform',
     title: 'Platform',
     description:
-      'Platform and software assumptions, including workbook-backed capex inputs and integrated expansion fields.',
+      'Platform, software, and infrastructure assumptions used in capacity sizing and integrated planning.',
     contexts: ['/', '/assumptions', '/a2-platform', '/corridor-view'],
     source: 'reference',
   },
@@ -102,7 +102,7 @@ export const assumptionGroups: AssumptionGroup[] = [
     id: 'energy',
     title: 'Energy',
     description:
-      'Energy intensity, charging capacity, and power-cost assumptions sourced from the workbook and integrated extensions.',
+      'Energy intensity, charging capacity, and power-cost assumptions used in the corridor energy model.',
     contexts: ['/', '/assumptions', '/a2-energy', '/corridor-view'],
     source: 'reference',
   },
@@ -153,7 +153,7 @@ const groupByRowLabel: Array<{
     pattern: /NUMBER OF TRUCKS/,
     groupId: 'fleet',
     helperText:
-      'Reference-backed annual truck additions loaded directly from ASSUMPTIONS_DATA.',
+      'Annual fleet deployment assumption used in capacity and operations planning.',
     dependencyTag: 'Capacity',
     contexts: ['/', '/assumptions', '/a2-fleet', '/corridor-view'],
     decimals: 0,
@@ -162,7 +162,7 @@ const groupByRowLabel: Array<{
     pattern: /SWAPS PER TRUCK PER DAY/,
     groupId: 'fleet',
     helperText:
-      'Operational turnover assumption used by the workbook assumptions cascade.',
+      'Operational turnover assumption used in the fleet utilization cascade.',
     dependencyTag: 'Operations',
     contexts: ['/', '/assumptions', '/a2-fleet'],
     decimals: 0,
@@ -171,7 +171,7 @@ const groupByRowLabel: Array<{
     pattern: /BATTERY PACKS CHARGED PER CHARGER PER DAY/,
     groupId: 'energy',
     helperText:
-      'Reference charging-throughput assumption from the workbook assumptions layer.',
+      'Charging-throughput assumption used in infrastructure sizing and energy utilization.',
     dependencyTag: 'Infrastructure',
     contexts: ['/', '/assumptions', '/a2-energy', '/a2-fleet'],
     decimals: 0,
@@ -179,7 +179,7 @@ const groupByRowLabel: Array<{
   {
     pattern: /COST PER TRUCK/,
     groupId: 'fleet',
-    helperText: 'Truck unit capex from the workbook base-case reference.',
+    helperText: 'Truck unit capex assumption used in fleet investment planning.',
     dependencyTag: 'CAPEX',
     contexts: ['/', '/assumptions', '/a2-fleet'],
     decimals: 0,
@@ -188,7 +188,7 @@ const groupByRowLabel: Array<{
     pattern: /FLEET MANAGEMENT SOFTWARE/,
     groupId: 'platform',
     helperText:
-      'Workbook-backed software investment input used in capex replication.',
+      'Software investment input used in platform capex planning.',
     dependencyTag: 'Platform',
     contexts: ['/', '/assumptions', '/a2-platform'],
     decimals: 0,
@@ -197,7 +197,7 @@ const groupByRowLabel: Array<{
     pattern: /HARDWARE AND OFFICE EQUIPMENT/,
     groupId: 'platform',
     helperText:
-      'Reference hardware and office equipment capex from the source workbook.',
+      'Hardware and office equipment capex assumption used in platform buildout planning.',
     dependencyTag: 'Platform',
     contexts: ['/', '/assumptions', '/a2-platform'],
     decimals: 0,
@@ -206,7 +206,7 @@ const groupByRowLabel: Array<{
     pattern: /OPERATING  RESERVE/,
     groupId: 'financing',
     helperText:
-      'Operating reserve allocation loaded from the workbook assumptions sheet.',
+      'Operating reserve allocation used in liquidity planning.',
     dependencyTag: 'Liquidity',
     contexts: ['/', '/assumptions', '/save-export'],
     decimals: 0,
@@ -215,7 +215,7 @@ const groupByRowLabel: Array<{
     pattern: /CONTINGENCY RESERVE/,
     groupId: 'financing',
     helperText:
-      'Contingency reserve line from the workbook funding stack assumptions.',
+      'Contingency reserve allocation used in funding and downside planning.',
     dependencyTag: 'Liquidity',
     contexts: ['/', '/assumptions', '/save-export'],
     decimals: 0,
@@ -224,7 +224,7 @@ const groupByRowLabel: Array<{
     pattern: /AVERAGE KILOMETRES PER TRUCK PER YEAR/,
     groupId: 'fleet',
     helperText:
-      'Average annual operating distance per truck from the workbook assumptions.',
+      'Average annual operating distance per truck used in demand and utilization planning.',
     dependencyTag: 'Operations',
     contexts: ['/', '/assumptions', '/a2-fleet'],
     decimals: 0,
@@ -233,7 +233,7 @@ const groupByRowLabel: Array<{
     pattern: /ENERGY USED PER KM/,
     groupId: 'energy',
     helperText:
-      'Energy intensity assumption that feeds the workbook energy-cost cascade.',
+      'Energy intensity assumption that feeds the energy-cost cascade.',
     dependencyTag: 'Energy',
     contexts: ['/', '/assumptions', '/a2-energy'],
     decimals: 1,
@@ -242,7 +242,7 @@ const groupByRowLabel: Array<{
     pattern: /COST PER KW OF ENERGY/,
     groupId: 'energy',
     helperText:
-      'Reference energy price trajectory from the workbook assumptions sheet.',
+      'Energy price trajectory used in operating-cost planning.',
     dependencyTag: 'Energy',
     contexts: ['/', '/assumptions', '/a2-energy', '/corridor-view'],
     decimals: 3,
@@ -260,7 +260,7 @@ const groupByRowLabel: Array<{
     pattern: /AVERAGE CHARGEABLE TONNES PER TRIP/,
     groupId: 'fleet',
     helperText:
-      'Chargeable payload assumption used in the workbook revenue pass-through.',
+      'Chargeable payload assumption used in the freight revenue cascade.',
     dependencyTag: 'Revenue',
     contexts: ['/', '/assumptions', '/a2-fleet'],
     decimals: 0,
@@ -269,7 +269,7 @@ const groupByRowLabel: Array<{
     pattern: /FREIGHT RATE PER TONNE/,
     groupId: 'global',
     helperText:
-      'Base freight pricing assumption from the workbook source assumptions.',
+      'Base freight pricing assumption used across commercial planning views.',
     dependencyTag: 'Revenue',
     contexts: ['/', '/assumptions', '/corridor-view'],
     defaultFavorite: true,
@@ -526,7 +526,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '$m',
     helperText:
-      'Initial central software build and integration capex layered on top of the workbook anchor.',
+      'Initial central software build and integration capex for the platform layer.',
     dependencyTag: 'CAPEX',
     decimals: 1,
     baseValue: 7.5,
@@ -1045,7 +1045,7 @@ function buildReferenceAssumptions() {
       unit: normalizeUnit(cell.unit),
       helperText:
         rule?.helperText ??
-        'Reference-backed workbook assumption loaded from ASSUMPTIONS_DATA.',
+        'Core planning assumption loaded from the model configuration layer.',
       dependencyTag: rule?.dependencyTag,
       decimals: rule?.decimals ?? inferDecimals(cell.unit, cell.base_value),
       baseValue: cell.base_value,

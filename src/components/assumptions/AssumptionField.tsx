@@ -109,11 +109,6 @@ export function AssumptionField({
                 fxRate,
               })}
             </p>
-            {definition.workbook ? (
-              <p>
-                Workbook: {definition.workbook.sheet}!{definition.workbook.cell}
-              </p>
-            ) : null}
           </div>
         </div>
 

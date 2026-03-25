@@ -30,8 +30,6 @@ function buildFallbackRect(): SpotlightRect {
 export function AppWalkthrough() {
   const isOpen = useUIStore((state) => state.isWalkthroughOpen);
   const step = useUIStore((state) => state.walkthroughStep);
-  const isUtilityPanelOpen = useUIStore((state) => state.isUtilityPanelOpen);
-  const toggleUtilityPanel = useUIStore((state) => state.toggleUtilityPanel);
   const closeWalkthrough = useUIStore((state) => state.closeWalkthrough);
   const nextWalkthroughStep = useUIStore((state) => state.nextWalkthroughStep);
   const previousWalkthroughStep = useUIStore((state) => state.previousWalkthroughStep);
@@ -74,17 +72,7 @@ export function AppWalkthrough() {
       window.removeEventListener('resize', updateSpotlight);
       window.removeEventListener('scroll', updateSpotlight, true);
     };
-  }, [currentStep.selector, isOpen, isUtilityPanelOpen, step]);
-
-  useEffect(() => {
-    if (
-      isOpen &&
-      currentStep.selector === '[data-testid="utility-panel"]' &&
-      !isUtilityPanelOpen
-    ) {
-      toggleUtilityPanel();
-    }
-  }, [currentStep.selector, isOpen, isUtilityPanelOpen, toggleUtilityPanel]);
+  }, [currentStep.selector, isOpen, step]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -163,7 +151,7 @@ export function AppWalkthrough() {
 
       <div className="relative h-full w-full">
         <div
-          className="absolute overflow-hidden rounded-[1.75rem] border border-white/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,249,253,0.94))] shadow-[0_24px_80px_rgba(10,19,34,0.24)] backdrop-blur-xl transition-all duration-500 ease-out dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.96),rgba(15,23,42,0.94))]"
+          className="absolute flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[1.75rem] border border-white/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,249,253,0.94))] shadow-[0_24px_80px_rgba(10,19,34,0.24)] backdrop-blur-xl transition-all duration-500 ease-out dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.96),rgba(15,23,42,0.94))]"
           style={cardStyle}
           data-testid="walkthrough-card"
         >
@@ -198,7 +186,7 @@ export function AppWalkthrough() {
             />
           </div>
 
-          <div className="px-5 pb-5">
+          <div className="min-h-0 overflow-y-auto px-5 pb-5">
             <div className="rounded-[1.35rem] border border-white/55 bg-white/72 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:border-white/10 dark:bg-slate-900/55">
               <p className="text-sm leading-6 text-app-subtle">
                 {currentStep.summary}

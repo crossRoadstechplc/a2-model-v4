@@ -6,7 +6,7 @@ export const walkthroughSteps = [
     summary:
       'This left rail is the app map. It groups overview pages, entity modules, analysis tools, and reporting surfaces into one institutional navigation spine.',
     details: [
-      'Use it as the fastest way to move between executive review, entity dashboards, planning tools, and audit pages without losing the assumptions or utility context on screen.',
+      'Use it as the fastest way to move between executive review, entity dashboards, planning tools, and audit pages without losing the assumptions context on screen.',
       'The sidebar is structured like a serious modeling workspace rather than a generic website menu, so the most important working routes stay close together and visually disciplined.',
       'Collapsed mode preserves icons, active state, and hover titles, which keeps orientation intact when you need more room for tables or dashboards.',
     ],
@@ -96,18 +96,6 @@ export const walkthroughSteps = [
     ],
   },
   {
-    title: 'Utility explanation panel',
-    selector: '[data-testid="utility-panel"]',
-    sectionLabel: 'Explainability layer',
-    summary:
-      'The right panel is the explanation and audit companion to the dashboards. It holds integrity counts, dependency notes, KPI context, and selected-assumption impact summaries.',
-    details: [
-      'Its purpose is to explain why a number moved, not just report that it moved.',
-      'That keeps the central workspace focused on primary analytical outputs while still giving the user immediate access to rationale and diagnostics.',
-      'As formula tracing matures, this panel can absorb more explanatory depth without cluttering the main dashboard sections.',
-    ],
-  },
-  {
     title: 'Walkthrough and theme tools',
     selector: '[data-testid="walkthrough-toggle"]',
     sectionLabel: 'Header tools',
@@ -124,7 +112,7 @@ export const walkthroughSteps = [
     selector: '[data-testid="main-workspace-scroll"]',
     sectionLabel: 'Working rhythm',
     summary:
-      'A strong review rhythm is: inspect the current page, adjust assumptions in the rail, watch freshness and toasts, then use integrity and utility surfaces to explain the new result.',
+      'A strong review rhythm is: inspect the current page, adjust assumptions in the rail, watch freshness and toasts, then use integrity and page-level detail to explain the new result.',
     details: [
       'Start with Executive Summary for the top-line case, then drill into Fleet, Platform, Energy, and Consolidated pages when you need the supporting structure behind the headline view.',
       'Use Scenario Studio and Sensitivity Lab when the question becomes comparative or directional rather than simply descriptive.',

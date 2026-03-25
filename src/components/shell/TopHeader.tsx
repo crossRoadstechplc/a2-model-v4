@@ -8,7 +8,6 @@ import {
   CalculatorIcon,
   HelpCircleIcon,
   PanelLeftIcon,
-  PanelRightIcon,
   SlidersIcon,
 } from '../ui/icons';
 import { StatusBadge } from '../ui/StatusBadge';
@@ -35,10 +34,8 @@ export function TopHeader() {
   const currentLabel = pathToLabel.get(location.pathname) ?? 'Analytical Workspace';
   const isPrimarySidebarOpen = useUIStore((state) => state.isPrimarySidebarOpen);
   const isAssumptionsOpen = useUIStore((state) => state.isAssumptionsOpen);
-  const isUtilityPanelOpen = useUIStore((state) => state.isUtilityPanelOpen);
   const togglePrimarySidebar = useUIStore((state) => state.togglePrimarySidebar);
   const toggleAssumptions = useUIStore((state) => state.toggleAssumptions);
-  const toggleUtilityPanel = useUIStore((state) => state.toggleUtilityPanel);
   const openWalkthrough = useUIStore((state) => state.openWalkthrough);
   const runState = useModelStore((state) => state.runState);
   const changedAssumptionIds = useModelStore((state) => state.changedAssumptionIds);
@@ -136,16 +133,6 @@ export function TopHeader() {
             active={isAssumptionsOpen}
             testId="assumptions-header-toggle"
             aria-expanded={isAssumptionsOpen}
-          />
-          <IconButton
-            icon={<PanelRightIcon className="h-5 w-5" />}
-            label={
-              isUtilityPanelOpen ? 'Collapse utility panel' : 'Expand utility panel'
-            }
-            onClick={toggleUtilityPanel}
-            active={isUtilityPanelOpen}
-            testId="utility-toggle"
-            aria-expanded={isUtilityPanelOpen}
           />
           <IconButton
             icon={<HelpCircleIcon className="h-5 w-5" />}

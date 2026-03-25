@@ -1,9 +1,19 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function dismissWalkthroughIfVisible(page: Page) {
+  const walkthrough = page.getByTestId('app-walkthrough');
+
+  if (await walkthrough.isVisible().catch(() => false)) {
+    await page.getByTestId('walkthrough-close').click();
+    await expect(walkthrough).toBeHidden();
+  }
+}
 
 test('first run and post-run assumption edits refresh workbook outputs', async ({
   page,
 }) => {
   await page.goto('/');
+  await dismissWalkthroughIfVisible(page);
 
   await expect(
     page.getByText('Run the model to populate the executive summary'),

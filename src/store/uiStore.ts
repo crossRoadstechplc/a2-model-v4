@@ -10,7 +10,6 @@ export const uiDefaults: {
   displayCurrency: DisplayCurrency;
   isPrimarySidebarOpen: boolean;
   isAssumptionsOpen: boolean;
-  isUtilityPanelOpen: boolean;
   assumptionsSidebarWidth: number;
   assumptionSidebarMode: AssumptionSidebarMode;
 } = {
@@ -18,7 +17,6 @@ export const uiDefaults: {
   displayCurrency: 'USD',
   isPrimarySidebarOpen: true,
   isAssumptionsOpen: true,
-  isUtilityPanelOpen: false,
   assumptionsSidebarWidth: 360,
   assumptionSidebarMode: 'context',
 };
@@ -32,7 +30,6 @@ type UIStoreFacade = typeof uiDefaults & {
   toggleTheme: () => void;
   togglePrimarySidebar: () => void;
   toggleAssumptions: () => void;
-  toggleUtilityPanel: () => void;
   setAssumptionsSidebarWidth: (width: number) => void;
   setAssumptionSidebarMode: (
     mode: UIStoreFacade['assumptionSidebarMode'],
@@ -55,7 +52,6 @@ export function useUIStore<T>(selector: (state: UIStoreFacade) => T) {
       toggleTheme: state.toggleTheme,
       togglePrimarySidebar: state.togglePrimarySidebar,
       toggleAssumptions: state.toggleAssumptions,
-      toggleUtilityPanel: state.toggleUtilityPanel,
       setAssumptionsSidebarWidth: state.setAssumptionsSidebarWidth,
       setAssumptionSidebarMode: state.setAssumptionSidebarMode,
       openWalkthrough: state.openWalkthrough,

@@ -10,10 +10,10 @@ import {
 } from '../components/model/IntegratedDashboards';
 import { IntegrityChecksDashboard } from '../components/planning/IntegrityChecksDashboard';
 import { DocumentationDashboard } from '../components/planning/DocumentationDashboard';
+import { SaveExportDashboard } from '../components/planning/SaveExportDashboard';
 import { ScenarioStudio } from '../components/planning/ScenarioStudio';
 import { SensitivityLab } from '../components/planning/SensitivityLab';
 import { ValidationReportDashboard } from '../components/planning/ValidationReportDashboard';
-import { PageScaffold } from './PageScaffold';
 
 export function ExecutiveSummaryPage() {
   return <ExecutiveSummaryDashboard />;
@@ -56,20 +56,7 @@ export function ValidationReportPage() {
 }
 
 export function SaveExportPage() {
-  return (
-    <PageScaffold
-      title="Save / Export"
-      intro="Save states, export actions, and investor-ready output packaging will render here."
-      sections={[
-        {
-          title: 'Export Queue',
-          description:
-            'Placeholder for report generation, workbook export, and snapshot packaging.',
-          body: 'The shell separates export controls from the calculation engine so downstream jobs can attach later without changing the navigation model.',
-        },
-      ]}
-    />
-  );
+  return <SaveExportDashboard />;
 }
 
 export function DocumentationPage() {

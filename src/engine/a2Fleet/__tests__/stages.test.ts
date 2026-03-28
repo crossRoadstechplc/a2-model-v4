@@ -55,15 +55,19 @@ describe('a2 fleet workbook stages', () => {
 
   it('calculates cumulative return metrics outside the statement row model', () => {
     const output = runA2FleetWorkbook(getBaseAssumptionBundle().baseValues);
-    const equityIrr = output.returnsSummary.metrics.find(
-      (metric) => metric.id === 'equity_irr',
-    );
+    const equityIrr = output.returnsSummary.returnsMetrics.equityIrr;
+    const projectIrr = output.returnsSummary.returnsMetrics.projectIrr;
 
     expect(output.incomeStatement.rows.find((row) => row.key === 'irr')).toBeUndefined();
     expect(output.valuationSummary.rows.find((row) => row.key === 'irr')).toBeUndefined();
     expect(output.returnsSummary.cashFlowSeries?.[0]).toBeLessThan(0);
+    expect(
+      output.returnsSummary.seriesDefinitions.some((item) => item.type === 'workbookParity'),
+    ).toBe(true);
     expect(equityIrr?.status).toBe('ready');
     expect(equityIrr?.value).not.toBeNull();
+    expect(equityIrr?.value).toBeCloseTo(16.5670780707392, 8);
+    expect(projectIrr?.status).toBe('ready');
   });
 
   it('cascades assumption changes through fleet, revenue, and valuation outputs', () => {

@@ -58,5 +58,10 @@ describe('integrated consolidated scaffold', () => {
     expect(
       getRowValues(output.consolidated.balanceSheet.rows, 'total_equity').length,
     ).toBe(periodsLength);
+    expect(output.consolidated.returnsSummary.returnsMetrics.projectIrr.status).toBe('ready');
+    expect(output.consolidated.returnsSummary.returnsMetrics.equityIrr.status).toBe(
+      'pending',
+    );
+    expect(output.consolidated.returnsSummary.terminalValuePolicy?.method).toBe('bookValue');
   });
 });

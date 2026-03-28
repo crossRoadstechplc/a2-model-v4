@@ -57,6 +57,9 @@ describe('integrated platform module', () => {
     expect(platform.capacity.byPeriod[1]?.stations).toBe(7);
     expect(platform.capacity.byPeriod[1]?.totalSockets).toBeGreaterThan(0);
     expect(platform.capacity.byPeriod[1]?.maxDailySwaps).toBeGreaterThan(0);
+    expect(platform.returnsSummary.returnsMetrics.projectIrr.status).toBe('ready');
+    expect(platform.returnsSummary.returnsMetrics.equityIrr.status).toBe('pending');
+    expect(platform.returnsSummary.terminalValuePolicy?.method).toBe('netAssets');
   });
 
   it('responds to service-factor changes and remains deterministic', () => {

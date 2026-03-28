@@ -5,6 +5,7 @@ import {
   calculateNpv,
   calculateMoic,
   calculatePaybackPeriod,
+  solveIrr,
 } from '../returns';
 
 describe('returns helpers', () => {
@@ -12,6 +13,26 @@ describe('returns helpers', () => {
     const series = [-100, 20, 30, 40, 80];
 
     expect(calculateIrr(series)).toBeCloseTo(0.1967, 3);
+  });
+
+  it('returns null for streams without a sign change', () => {
+    expect(calculateIrr([10, 20, 30])).toBeNull();
+    expect(calculateIrr([-10, -20, -30])).toBeNull();
+  });
+
+  it('falls back to bisection when the Newton path is unstable', () => {
+    const result = solveIrr([-100, 120], -0.9999999);
+
+    expect(result.method).toBe('bisection');
+    expect(result.value).toBeCloseTo(0.2, 6);
+  });
+
+  it('handles near-boundary cases safely when IRR is close to -100%', () => {
+    const result = solveIrr([-100, 0.01]);
+
+    expect(result.value).not.toBeNull();
+    expect(result.value!).toBeGreaterThan(-1);
+    expect(result.value!).toBeCloseTo(-0.9999, 4);
   });
 
   it('calculates payback and moic from the same full stream', () => {

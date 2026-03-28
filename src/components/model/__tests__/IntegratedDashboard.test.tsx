@@ -80,7 +80,7 @@ describe('integrated dashboard routing and recalculation', () => {
     expect(screen.getByText(/infrastructure sizing linked to the current fleet truck path/i)).toBeInTheDocument();
   });
 
-  it('shows computed first-pass returns on the consolidated page', () => {
+  it('shows project returns and a graceful pending equity state on the consolidated page', () => {
     renderWithRouter(<AppRoutes />, '/corridor-view');
 
     fireEvent.click(screen.getByTestId('calculate-button'));
@@ -95,8 +95,6 @@ describe('integrated dashboard routing and recalculation', () => {
     expect(screen.getByTestId('returns-card-project_irr-value')).not.toHaveTextContent(
       'Pending',
     );
-    expect(screen.getByTestId('returns-card-equity_irr-value')).not.toHaveTextContent(
-      'Pending',
-    );
+    expect(screen.getByTestId('returns-card-equity_irr-value')).toHaveTextContent('Pending');
   });
 });

@@ -4,6 +4,7 @@ import {
   addSeries,
   buildNetAssetSeries,
   buildStatement,
+  buildUnleveredFreeCashFlowSeries,
   calculateLinearDepreciation,
   clamp,
   getAssumption,
@@ -153,9 +154,15 @@ export function calculateEnergyModule({
 
   const ebitda = totalRevenue.map((value, index) => value - opex[index]);
   const ebit = ebitda.map((value, index) => value - depreciation[index]);
-  const projectCashFlowSeries = ebitda.map((value, index) => {
-    const baseValue = value - capex[index];
-    return index === ebitda.length - 1 ? baseValue + (netAssets[index] ?? 0) : baseValue;
+  const taxRatePct =
+    getAssumption(assumptions, 'integrated.tax_fx.effective_tax_rate_pct') / 100;
+  const terminalNetAssets = netAssets[netAssets.length - 1] ?? 0;
+  const projectCashFlowSeries = buildUnleveredFreeCashFlowSeries({
+    ebit,
+    depreciation,
+    capex,
+    taxRatePct,
+    terminalValue: terminalNetAssets,
   });
   const serviceFactorSeries = periods.map((_period, index) => {
     if (index === 0) {
@@ -280,14 +287,40 @@ export function calculateEnergyModule({
     returnsSummary: buildComputedReturnsSummary({
       title: 'Returns / Valuation',
       basisLabel:
-        'Energy returns currently use a first-pass project cash flow basis: EBITDA less capex, with terminal net asset value added in the final period. Equity IRR currently mirrors that same basis until Energy financing and investor distributions are modeled separately.',
+        'Energy Project IRR uses an explicit unlevered free cash flow series: EBIT after tax plus depreciation, less capex, with terminal net asset value in the final period. Equity IRR remains pending until explicit Energy financing and investor distributions are modeled.',
       projectCashFlowSeries,
       discountRatePct,
-      fallbackInitialInvestment:
-        capex.find((value) => value > 0) ?? netAssets.find((value) => value > 0) ?? 0,
-      useProjectSeriesForEquity: true,
+      projectIrrNotes: [
+        'Project IRR excludes financing flows and is based on explicit unlevered free cash flow.',
+        'Working capital is not yet modeled explicitly in the Energy module and is currently treated as zero.',
+      ],
+      equityIrrNotes: [
+        'Equity IRR is intentionally pending until Energy financing, equity injections, and investor distributions are modeled.',
+      ],
       npvDescription:
-        'NPV uses the current integrated discount-rate assumption against the provisional Energy cash flow stream.',
+        'NPV uses the current integrated discount-rate assumption against the Energy project FCFF stream.',
+      terminalValuePolicy: {
+        method: 'netAssets',
+        value: terminalNetAssets,
+        note: 'Final-period Energy net asset value is used as the provisional terminal value basis.',
+      },
+      seriesDefinitions: [
+        {
+          type: 'project',
+          label: 'Energy project FCFF series',
+          values: projectCashFlowSeries,
+          note: 'EBIT after tax plus depreciation, less capex, with final net assets carried as terminal value.',
+        },
+        {
+          type: 'equity',
+          label: 'Energy equity cash flow series',
+          values: null,
+          note: 'Pending until explicit Energy financing and investor distribution schedules are modeled.',
+        },
+      ],
+      notes: [
+        'Energy returns now separate project cash flow logic from equity investor logic.',
+      ],
     }),
     kpis: [
       {

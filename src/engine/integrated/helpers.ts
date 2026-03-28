@@ -85,6 +85,27 @@ export function buildNetAssetSeries(capex: number[], depreciation: number[]) {
   });
 }
 
+/**
+ * Standard unlevered free cash flow builder used by the non-workbook entity layers.
+ * This keeps financing flows out of Project IRR and uses the best currently modeled
+ * approximation where working capital schedules are not yet explicit.
+ */
+export function buildUnleveredFreeCashFlowSeries(params: {
+  ebit: number[];
+  depreciation: number[];
+  capex: number[];
+  taxRatePct: number;
+  terminalValue?: number | null;
+}) {
+  const terminalValue = params.terminalValue ?? 0;
+
+  return params.ebit.map((value, index) => {
+    const cashTax = value > 0 ? value * params.taxRatePct : 0;
+    const fcff = value - cashTax + (params.depreciation[index] ?? 0) - Math.abs(params.capex[index] ?? 0);
+    return index === params.ebit.length - 1 ? fcff + terminalValue : fcff;
+  });
+}
+
 export function deriveSeriesDelta(current: number[], previous: number[]) {
   return current.map((value, index) => value - (previous[index] ?? 0));
 }

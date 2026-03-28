@@ -51,6 +51,9 @@ describe('integrated energy module', () => {
       getRowValue(energy.operations.rows, 'battery_packs_provisioned', 1),
     ).toBeCloseTo(expectedProvisioned, 6);
     expect(getRowValue(energy.operations.rows, 'battery_replacements', 1)).toBeGreaterThan(0);
+    expect(energy.returnsSummary.returnsMetrics.projectIrr.status).toBe('ready');
+    expect(energy.returnsSummary.returnsMetrics.equityIrr.status).toBe('pending');
+    expect(energy.returnsSummary.terminalValuePolicy?.method).toBe('netAssets');
   });
 
   it('supports manual replacement overrides', () => {

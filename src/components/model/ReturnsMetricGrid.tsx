@@ -33,6 +33,28 @@ export function ReturnsMetricGrid({
           Basis
         </p>
         <p className="mt-2 text-sm leading-6 text-app-text">{summary.basisLabel}</p>
+        {summary.terminalValuePolicy ? (
+          <div className="mt-4 rounded-2xl border border-app-border bg-app-panel/80 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
+              Terminal Value Method
+            </p>
+            <p className="mt-2 text-sm font-semibold text-app-text">
+              {summary.terminalValuePolicy.method}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-app-subtle">
+              {summary.terminalValuePolicy.note}
+            </p>
+          </div>
+        ) : null}
+        {summary.notes?.length ? (
+          <div className="mt-4 space-y-2">
+            {summary.notes.map((note) => (
+              <p key={note} className="text-sm leading-6 text-app-subtle">
+                {note}
+              </p>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {summary.metrics.map((metric) => {
@@ -74,6 +96,19 @@ export function ReturnsMetricGrid({
                 </StatusBadge>
               </div>
               <p className="mt-3 text-sm leading-6 text-app-subtle">{metric.description}</p>
+              {metric.notes?.length ? (
+                <div className="mt-3 space-y-2">
+                  {metric.notes.map((note) => (
+                    <p
+                      key={note}
+                      className="text-xs leading-5 text-app-subtle"
+                      data-testid={`returns-card-${metric.id}-note`}
+                    >
+                      {note}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
             </article>
           );
         })}

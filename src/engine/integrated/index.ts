@@ -1,9 +1,16 @@
 import type { AssumptionValueMap } from '../../model/assumptions';
 import type { A2FleetWorkbookOutput } from '../a2Fleet';
-import { buildComputedReturnsSummary } from '../returns';
+import { buildComputedReturnsSummary, buildPendingReturnsSummary } from '../returns';
 import { runA2FleetWorkbook } from '../a2Fleet';
 import { calculateEnergyModule } from './energy';
-import { addSeries, buildStatement, clamp, getAssumption, subtractSeries } from './helpers';
+import {
+  addSeries,
+  buildStatement,
+  buildUnleveredFreeCashFlowSeries,
+  clamp,
+  getAssumption,
+  subtractSeries,
+} from './helpers';
 import { calculatePlatformModule } from './platform';
 import type {
   ConsolidatedElimination,
@@ -96,6 +103,20 @@ function buildEliminations(
   ];
 }
 
+function hasBalancedIntercompanyFlows(intercompany: IntercompanyFlowOutput) {
+  const totalInternalFlows =
+    intercompany.statement.rows.find((row) => row.key === 'total_internal_flows')?.values ?? [];
+
+  return totalInternalFlows.every((value, index) => {
+    const explicitTotal =
+      (intercompany.fleetToPlatformFees[index] ?? 0) +
+      (intercompany.platformToEnergyLease[index] ?? 0) +
+      (intercompany.platformToEnergyRevenueShare[index] ?? 0);
+
+    return Math.abs(value - explicitTotal) <= 0.000001;
+  });
+}
+
 function buildConsolidatedOutput(params: {
   assumptions: AssumptionValueMap;
   fleet: A2FleetWorkbookOutput;
@@ -184,12 +205,63 @@ function buildConsolidatedOutput(params: {
   );
   const consolidatedEquity = addSeries(fleetEquity, consolidatedNetIncome);
   const discountRatePct = getAssumption(assumptions, 'integrated.global.discount_rate_pct');
-  const consolidatedReturnCashFlowSeries = consolidatedNetIncome.map((value, index) => {
-    const baseValue = value - consolidatedCapex[index];
-    return index === consolidatedNetIncome.length - 1
-      ? baseValue + (consolidatedEquity[index] ?? 0)
-      : baseValue;
+  const terminalBookValue = consolidatedEquity[consolidatedEquity.length - 1] ?? 0;
+  const consolidatedReturnCashFlowSeries = buildUnleveredFreeCashFlowSeries({
+    ebit: consolidatedEbit,
+    depreciation: consolidatedDepreciation,
+    capex: consolidatedCapex,
+    taxRatePct: taxRate,
+    terminalValue: terminalBookValue,
   });
+  const eliminationsBalanced = hasBalancedIntercompanyFlows(intercompany);
+  const returnsSummary = eliminationsBalanced
+    ? buildComputedReturnsSummary({
+        title: 'Returns / Valuation',
+        basisLabel:
+          'Consolidated Project IRR uses elimination-aware unlevered free cash flow: consolidated EBIT after tax plus depreciation, less expansion capex, with final consolidated book equity carried as a provisional terminal value. Equity IRR remains pending until a full integrated financing and investor distribution stack is modeled.',
+        projectCashFlowSeries: consolidatedReturnCashFlowSeries,
+        discountRatePct,
+        projectIrrNotes: [
+          'Project IRR is computed only after internal platform and energy transfers are eliminated from the consolidated statement scaffold.',
+          'Working capital and a full exit valuation policy are not yet modeled explicitly in the integrated stack.',
+        ],
+        equityIrrNotes: [
+          'Equity IRR is intentionally pending until explicit integrated financing, equity injections, and investor distributions are modeled.',
+        ],
+        npvDescription:
+          'NPV uses the current integrated discount-rate assumption against the elimination-aware consolidated project FCFF stream.',
+        terminalValuePolicy: {
+          method: 'bookValue',
+          value: terminalBookValue,
+          note: 'Final consolidated book equity is used as the provisional terminal value basis until a fuller exit policy is modeled.',
+        },
+        seriesDefinitions: [
+          {
+            type: 'project',
+            label: 'Consolidated project FCFF series',
+            values: consolidatedReturnCashFlowSeries,
+            note: 'Elimination-aware consolidated EBIT after tax plus depreciation, less capex, with final book value carried as terminal value.',
+          },
+          {
+            type: 'equity',
+            label: 'Consolidated equity cash flow series',
+            values: null,
+            note: 'Pending until explicit integrated financing and investor distribution schedules are modeled.',
+          },
+        ],
+        notes: [
+          'Consolidated Project IRR is only shown when the explicit intercompany flow layer balances cleanly.',
+        ],
+      })
+    : {
+        ...buildPendingReturnsSummary(
+          'Returns / Valuation',
+          'Consolidated returns remain pending because intercompany eliminations are not balanced well enough to support a trustworthy consolidated return metric.',
+        ),
+        notes: [
+          'Project and Equity IRR are both withheld until intercompany elimination consistency is restored.',
+        ],
+      };
 
   return {
     periods,
@@ -352,20 +424,7 @@ function buildConsolidatedOutput(params: {
         description: `Consolidated scaffold total assets in ${periods[periods.length - 1]}.`,
       },
     ],
-    returnsSummary: buildComputedReturnsSummary({
-      title: 'Returns / Valuation',
-      basisLabel:
-        'Consolidated returns currently use a first-pass cash flow basis: consolidated net income less expansion capex, with terminal consolidated equity carried in the final period. Equity IRR currently mirrors that same basis until a full integrated financing stack is modeled.',
-      projectCashFlowSeries: consolidatedReturnCashFlowSeries,
-      discountRatePct,
-      fallbackInitialInvestment:
-        consolidatedCapex.find((value) => value > 0) ??
-        consolidatedAssets.find((value) => value > 0) ??
-        0,
-      useProjectSeriesForEquity: true,
-      npvDescription:
-        'NPV uses the current integrated discount-rate assumption against the provisional consolidated cash flow stream.',
-    }),
+    returnsSummary,
   };
 }
 

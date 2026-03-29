@@ -34,7 +34,7 @@ export function DashboardPage({
           </div>
           <div className="flex flex-wrap gap-2">
             <StatusBadge tone="accent">Investor grade</StatusBadge>
-            <StatusBadge tone="neutral">Fleet workbook</StatusBadge>
+            <StatusBadge tone="neutral">V2 workbook</StatusBadge>
           </div>
         </div>
       </section>

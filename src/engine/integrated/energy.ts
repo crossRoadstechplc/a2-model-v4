@@ -2,14 +2,15 @@ import type { A2FleetWorkbookOutput } from '../a2Fleet';
 import { buildComputedReturnsSummary } from '../returns';
 import {
   addSeries,
+  alignSeriesToPeriods,
   buildNetAssetSeries,
   buildStatement,
   buildUnleveredFreeCashFlowSeries,
   calculateLinearDepreciation,
   clamp,
   getAssumption,
+  getRowValues,
   mapSeries,
-  shiftWithLeadingZero,
 } from './helpers';
 import type { EnergyOutput } from './types';
 
@@ -54,9 +55,34 @@ export function calculateEnergyModule({
   replacementRateOverride,
 }: EnergyComputationInput): EnergyComputation {
   const periods = platform.periods;
-  const fleetTrucks = shiftWithLeadingZero(
-    fleet.derivedAssumptions.rows.find((row) => row.key === 'trucks_in_operation')?.values ??
-      [],
+  const fleetTrucks = alignSeriesToPeriods(
+    periods,
+    fleet.derivedAssumptions.rows.find(
+      (row) => row.key === 'number_of_trucks_cumalative',
+    )?.values ?? [],
+  );
+  const workbookBatteryPacksRequired = alignSeriesToPeriods(
+    periods,
+    fleet.derivedAssumptions.rows.find(
+      (row) => row.key === 'total_number_of_battery_packs',
+    )?.values ?? [],
+  );
+  const powerSalesRevenue = getRowValues(fleet.incomeStatement, 'revenue');
+  const powerPurchaseCost = getRowValues(
+    fleet.incomeStatement,
+    'cost_of_power_purchase_from_eep',
+  );
+  const workbookEnergyCapex = periods.map((_period, index) => {
+    const totalCapex = getRowValues(fleet.capexDepreciation, 'total_capex')[index] ?? 0;
+    const platformCapex =
+      (getRowValues(fleet.capexDepreciation, 'software_platform_development')[index] ?? 0) +
+      (getRowValues(fleet.capexDepreciation, 'hardware_office_equipment')[index] ?? 0);
+    return Math.max(0, totalCapex - platformCapex);
+  });
+  const workbookEnergyNetAssets = addSeries(
+    getRowValues(fleet.capexDepreciation, 'asset_value_charging_swapping_stations'),
+    getRowValues(fleet.capexDepreciation, 'asset_value_chargers'),
+    getRowValues(fleet.capexDepreciation, 'asset_value_battery_packs'),
   );
   const packsPerTruck = getAssumption(assumptions, 'integrated.energy.battery_packs_per_truck');
   const spareBuffer =
@@ -88,8 +114,10 @@ export function calculateEnergyModule({
     getAssumption(assumptions, 'integrated.energy.maintenance_pct_capex') / 100;
   const uptime = getAssumption(assumptions, 'integrated.energy.network_uptime_pct') / 100;
 
-  const batteryPacksRequired = mapSeries(fleetTrucks, (trucks) =>
-    trucks * packsPerTruck * (1 + spareBuffer),
+  const batteryPacksRequired = mapSeries(fleetTrucks, (trucks, index) =>
+    workbookBatteryPacksRequired[index] > 0
+      ? workbookBatteryPacksRequired[index]
+      : trucks * packsPerTruck * (1 + spareBuffer),
   );
 
   const batteryPacksProvisioned = batteryPacksRequired.map((value) => value * provisionRate);
@@ -99,11 +127,13 @@ export function calculateEnergyModule({
       return 0;
     }
 
-    const utilizationBurden = platform.swapDemand[index] / Math.max(batteryPacksRequired[index], 1);
-    const burdenFactor = utilizationBurden / Math.max(annualCyclesPerPack, 1);
+    const utilizationBurden =
+      platform.swapDemand[index] /
+      Math.max(batteryPacksRequired[index] * Math.max(annualCyclesPerPack, 1), 1);
+    const burdenFactor = utilizationBurden / Math.max(packCycleLife, 1);
     return clamp(
-      burdenFactor / Math.max(packCycleLife * Math.max(replacementTrigger, 0.1), 1) * 1000,
-      0,
+      burdenFactor / Math.max(replacementTrigger, 0.1) * 1.5,
+      0.005,
       0.35,
     );
   });
@@ -121,7 +151,7 @@ export function calculateEnergyModule({
   const provisionExpense = replacementCapex.map((value) => value * provisionRate);
   const leaseIncome = batteryPacksRequired.map((value) => value * leaseRate * 12);
   const revenueShareIncome = platform.externalRevenue.map((value) => value * revenueShare);
-  const totalRevenue = addSeries(leaseIncome, revenueShareIncome);
+  const totalRevenue = addSeries(powerSalesRevenue, leaseIncome, revenueShareIncome);
 
   const stationsAdded = platform.requiredSites.map((value, index) =>
     index === 0 ? value : Math.max(0, value - platform.requiredSites[index - 1]),
@@ -133,23 +163,27 @@ export function calculateEnergyModule({
     index === 0 ? value : Math.max(0, value - batteryPacksRequired[index - 1]),
   );
 
-  const capex = periods.map((_period, index) => {
-    return (
+  const capex = periods.map((_period, index) =>
+    Math.max(
+      workbookEnergyCapex[index] ?? 0,
       stationsAdded[index] * swapStationCapex +
-      chargersAdded[index] * chargerCapex +
-      packsAdded[index] * packCost +
-      replacementCapex[index]
-    );
-  });
+        chargersAdded[index] * chargerCapex +
+        packsAdded[index] * packCost +
+        replacementCapex[index],
+    ),
+  );
 
   const depreciation = calculateLinearDepreciation(capex, assetLifeYears);
-  const netAssets = buildNetAssetSeries(capex, depreciation);
+  const modeledNetAssets = buildNetAssetSeries(capex, depreciation);
+  const netAssets = periods.map(
+    (_period, index) => workbookEnergyNetAssets[index] ?? modeledNetAssets[index] ?? 0,
+  );
   const discountRatePct = getAssumption(assumptions, 'integrated.global.discount_rate_pct');
 
   const opex = periods.map((_period, index) => {
     const maintenance = netAssets[index] * maintenancePct;
     const fixed = index === 0 ? 0 : fixedOpex;
-    return fixed + maintenance + provisionExpense[index];
+    return fixed + maintenance + provisionExpense[index] + (powerPurchaseCost[index] ?? 0);
   });
 
   const ebitda = totalRevenue.map((value, index) => value - opex[index]);
@@ -216,6 +250,12 @@ export function calculateEnergyModule({
     ]),
     incomeStatement: buildStatement('ENERGY INCOME', periods, [
       {
+        key: 'power_sales_revenue',
+        label: 'Power Sales Revenue',
+        unit: '$',
+        values: powerSalesRevenue,
+      },
+      {
         key: 'lease_income',
         label: 'Lease Income',
         unit: '$',
@@ -262,6 +302,12 @@ export function calculateEnergyModule({
         label: 'Provision Expense',
         unit: '$',
         values: provisionExpense,
+      },
+      {
+        key: 'power_purchase_cost',
+        label: 'Power Purchase Cost',
+        unit: '$',
+        values: powerPurchaseCost,
       },
     ]),
     capexDepreciation: buildStatement('ENERGY CAPEX', periods, [

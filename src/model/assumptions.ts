@@ -1,10 +1,14 @@
-import referenceJson from '../../Docs/A2_Fleet_Model_Replication_Reference.json';
 import {
   convertValueForDisplay,
   getDisplayLabel,
   getDisplayUnit,
   type DisplayCurrency,
 } from './displayCurrency';
+import { a2FleetReference } from '../engine/a2Fleet/reference';
+import {
+  migrateLegacyAssumptionValues,
+  referenceWorkbookInputCells,
+} from './referenceWorkbookInputs';
 
 export type AssumptionGroupId =
   | 'global'
@@ -55,26 +59,15 @@ export type AssumptionMetadata = {
   };
 };
 
-type ReferenceBaseInputCell = {
-  cell: string;
-  row: number;
-  row_label: string;
-  unit: string;
-  column_label: string;
-  base_value: number;
-};
-
-type ReferenceJson = {
-  source_workbook: string;
-  assumptions: {
-    sheet: string;
-    base_input_cells: ReferenceBaseInputCell[];
-  };
-};
-
-const referenceData = referenceJson as ReferenceJson;
-
 export const assumptionGroups: AssumptionGroup[] = [
+  {
+    id: 'timing',
+    title: 'Timing / Horizon',
+    description:
+      'Trip timing, horizon, and deployment pacing assumptions used in planning views.',
+    contexts: ['/', '/assumptions', '/a2-fleet', '/corridor-view', '/scenarios'],
+    source: 'reference',
+  },
   {
     id: 'global',
     title: 'Global / Macro',
@@ -87,7 +80,7 @@ export const assumptionGroups: AssumptionGroup[] = [
     id: 'fleet',
     title: 'Fleet',
     description:
-      'Fleet build, utilization, and freight throughput assumptions used across the operating model.',
+      'Fleet build, swap demand, and service-consumption assumptions used across the operating model.',
     contexts: ['/', '/assumptions', '/a2-fleet', '/corridor-view'],
     source: 'reference',
   },
@@ -124,14 +117,6 @@ export const assumptionGroups: AssumptionGroup[] = [
     source: 'extension',
   },
   {
-    id: 'timing',
-    title: 'Timing / Horizon',
-    description:
-      'Trip timing, horizon, and deployment pacing assumptions used in planning views.',
-    contexts: ['/', '/assumptions', '/a2-fleet', '/corridor-view', '/scenarios'],
-    source: 'reference',
-  },
-  {
     id: 'overrides',
     title: 'Overrides / Manual Controls',
     description:
@@ -151,10 +136,19 @@ const groupByRowLabel: Array<{
   decimals?: number;
 }> = [
   {
+    pattern: /MAXIMUM DISTANCE BETWEEN CHARGING STATIONS|NUMBER OF STATIONS/,
+    groupId: 'fleet',
+    helperText:
+      'Corridor deployment driver used to size the charging and swapping footprint.',
+    dependencyTag: 'Deployment',
+    contexts: ['/', '/assumptions', '/a2-fleet', '/corridor-view'],
+    decimals: 0,
+  },
+  {
     pattern: /NUMBER OF TRUCKS/,
     groupId: 'fleet',
     helperText:
-      'Annual fleet deployment assumption used in capacity and operations planning.',
+      'Workbook-native truck deployment assumption used in the fleet-demand cascade.',
     dependencyTag: 'Capacity',
     contexts: ['/', '/assumptions', '/a2-fleet', '/corridor-view'],
     decimals: 0,
@@ -169,12 +163,31 @@ const groupByRowLabel: Array<{
     decimals: 0,
   },
   {
+    pattern: /NUMBER OF MINUTES PER SWAP|NUMBER OF HOURS OF SWAPPING PER DAY/,
+    groupId: 'fleet',
+    helperText:
+      'Operational service-timing assumption used in the swapping throughput cascade.',
+    dependencyTag: 'Operations',
+    contexts: ['/', '/assumptions', '/a2-fleet'],
+    decimals: 0,
+  },
+  {
     pattern: /BATTERY PACKS CHARGED PER CHARGER PER DAY/,
     groupId: 'energy',
     helperText:
       'Charging-throughput assumption used in infrastructure sizing and energy utilization.',
     dependencyTag: 'Infrastructure',
     contexts: ['/', '/assumptions', '/a2-energy', '/a2-fleet'],
+    decimals: 0,
+  },
+  {
+    pattern:
+      /NUMBER OF HOURS\/DAY OF CHARGING PER CHARGER|NUMBER OF CHARGERS REQUIRED|NUMBER OF SWAPPING BAYS PER STATION|NUMBER OF BATTERY PACKS PER TRUCK/,
+    groupId: 'energy',
+    helperText:
+      'Infrastructure and battery-base assumption used in the charging and swapping asset cascade.',
+    dependencyTag: 'Infrastructure',
+    contexts: ['/', '/assumptions', '/a2-energy', '/corridor-view'],
     decimals: 0,
   },
   {
@@ -186,10 +199,10 @@ const groupByRowLabel: Array<{
     decimals: 0,
   },
   {
-    pattern: /FLEET MANAGEMENT SOFTWARE/,
+    pattern: /SOFTWARE & PLATFORM DEVELOPMENT/,
     groupId: 'platform',
     helperText:
-      'Software investment input used in platform capex planning.',
+      'Workbook-native software and platform build assumption used in capex planning.',
     dependencyTag: 'Platform',
     contexts: ['/', '/assumptions', '/a2-platform'],
     decimals: 0,
@@ -201,6 +214,16 @@ const groupByRowLabel: Array<{
       'Hardware and office equipment capex assumption used in platform buildout planning.',
     dependencyTag: 'Platform',
     contexts: ['/', '/assumptions', '/a2-platform'],
+    decimals: 0,
+  },
+  {
+    pattern:
+      /COST PER CHARGING\/SWAPPING STATION|COST PER CHARGER|COST OF SWAPPING BAY|COST PER BATTERY PACK/,
+    groupId: 'energy',
+    helperText:
+      'Physical-network capex input used in the charging and swapping infrastructure buildout.',
+    dependencyTag: 'CAPEX',
+    contexts: ['/', '/assumptions', '/a2-energy', '/corridor-view'],
     decimals: 0,
   },
   {
@@ -223,54 +246,55 @@ const groupByRowLabel: Array<{
   },
   {
     pattern: /AVERAGE KILOMETRES PER TRUCK PER YEAR/,
-    groupId: 'fleet',
+    groupId: 'energy',
     helperText:
-      'Average annual operating distance per truck used in demand and utilization planning.',
-    dependencyTag: 'Operations',
-    contexts: ['/', '/assumptions', '/a2-fleet'],
+      'Power-demand driver used to convert truck activity into annual energy requirements.',
+    dependencyTag: 'Energy',
+    contexts: ['/', '/assumptions', '/a2-energy', '/a2-fleet'],
     decimals: 0,
   },
   {
-    pattern: /ENERGY USED PER KM/,
+    pattern:
+      /TOTAL KILOMETRES OF FLEET|BATTERY CAPACITY PER TRUCK|RATED RANGE PER CHARGE|REAL USE RANGE PER CHARGE|CHARGING TIME PER BATTERY PACK|POWER LOAD PER CHARGE|AVERAGE RESIDUAL CHARGE|COMPENSATION FOR THERMAL AND CHEMICAL CONVERSION LOSS/,
     groupId: 'energy',
     helperText:
-      'Energy intensity assumption that feeds the energy-cost cascade.',
+      'Power and charging-physics assumption used in the energy-demand cascade.',
     dependencyTag: 'Energy',
     contexts: ['/', '/assumptions', '/a2-energy'],
-    decimals: 1,
+    decimals: 0,
   },
   {
-    pattern: /COST PER KW OF ENERGY/,
+    pattern: /PURCHASE RATE PER KW/,
     groupId: 'energy',
     helperText:
-      'Energy price trajectory used in operating-cost planning.',
+      'Workbook-native power purchase rate used in energy-cost planning.',
     dependencyTag: 'Energy',
     contexts: ['/', '/assumptions', '/a2-energy', '/corridor-view'],
     decimals: 3,
   },
   {
-    pattern: /NUMBER OF DAYS PER TRIP/,
-    groupId: 'timing',
+    pattern: /VALUATION MULTIPLE|OPERATING EXPENSES SEED/,
+    groupId: 'financing',
     helperText:
-      'Trip duration assumption used in the freight and utilization cascade.',
-    dependencyTag: 'Timing',
-    contexts: ['/', '/assumptions', '/a2-fleet'],
+      'Financial-policy seed used in the valuation and operating-expense pattern.',
+    dependencyTag: 'Policy',
+    contexts: ['/', '/assumptions', '/corridor-view', '/save-export'],
     decimals: 0,
   },
   {
-    pattern: /AVERAGE CHARGEABLE TONNES PER TRIP/,
-    groupId: 'fleet',
+    pattern: /USEFUL LIFE/,
+    groupId: 'financing',
     helperText:
-      'Chargeable payload assumption used in the freight revenue cascade.',
-    dependencyTag: 'Revenue',
-    contexts: ['/', '/assumptions', '/a2-fleet'],
+      'Asset-life policy input used in depreciation planning.',
+    dependencyTag: 'Depreciation',
+    contexts: ['/', '/assumptions', '/corridor-view', '/save-export'],
     decimals: 0,
   },
   {
     pattern: /FREIGHT RATE PER TONNE/,
     groupId: 'global',
     helperText:
-      'Base freight pricing assumption used across commercial planning views.',
+      'Legacy commercial pricing field retained only for backward compatibility with older scenario payloads.',
     dependencyTag: 'Revenue',
     contexts: ['/', '/assumptions', '/corridor-view'],
     defaultFavorite: true,
@@ -287,7 +311,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '%',
     helperText:
-      'Integrated-model valuation discount rate reserved for the future engine.',
+      'Discount rate used across integrated valuation and sensitivity views.',
     dependencyTag: 'Valuation',
     decimals: 1,
     baseValue: 13,
@@ -303,7 +327,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '%',
     helperText:
-      'Integrated-model operating cost escalation assumption for placeholder outputs.',
+      'Operating cost escalation assumption used across the integrated analytical modules.',
     dependencyTag: 'OPEX',
     decimals: 1,
     baseValue: 4.2,
@@ -319,7 +343,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '%',
     helperText:
-      'Integrated-model demand-growth assumption used by the mocked output cards.',
+      'High-level demand-growth assumption used by supporting planning utilities.',
     dependencyTag: 'Revenue',
     decimals: 1,
     baseValue: 8.5,
@@ -335,7 +359,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '%',
     helperText:
-      'Platform monetization placeholder for the integrated model shell.',
+      'Platform monetization rate used by supporting planning utilities and comparative analysis.',
     dependencyTag: 'Margin',
     decimals: 1,
     baseValue: 14.5,
@@ -351,7 +375,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '$m/yr',
     helperText:
-      'Integrated-model platform support cost used in mocked outputs.',
+      'Platform support cost anchor used in supporting planning utilities.',
     dependencyTag: 'OPEX',
     decimals: 1,
     baseValue: 6.4,
@@ -575,7 +599,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '%',
     helperText:
-      'Integrated-model infrastructure uptime assumption for mocked refresh behavior.',
+      'Integrated-model infrastructure uptime assumption used in energy-service calculations.',
     dependencyTag: 'Operations',
     decimals: 1,
     baseValue: 97.4,
@@ -767,7 +791,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '$',
     helperText:
-      'Incremental charger hardware capex used in the first-pass infrastructure sizing logic.',
+      'Incremental charger hardware capex used in infrastructure sizing logic.',
     dependencyTag: 'CAPEX',
     decimals: 0,
     baseValue: 8500,
@@ -815,7 +839,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '%',
     helperText:
-      'Integrated-model funding structure placeholder for the upcoming engine.',
+      'Debt mix assumption used in financing and planning views.',
     dependencyTag: 'Financing',
     decimals: 1,
     baseValue: 60,
@@ -830,7 +854,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     groupId: 'financing',
     moduleId: 'integrated',
     unit: '%',
-    helperText: 'Integrated-model debt pricing placeholder.',
+    helperText: 'Debt pricing assumption used in financing and planning views.',
     dependencyTag: 'Financing',
     decimals: 1,
     baseValue: 8.6,
@@ -846,7 +870,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '%',
     helperText:
-      'Effective tax-rate placeholder reserved for the integrated model.',
+      'Effective tax-rate assumption used across integrated return and planning views.',
     dependencyTag: 'Tax',
     decimals: 1,
     baseValue: 28,
@@ -879,7 +903,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: 'yrs',
     helperText:
-      'Integrated-model planning horizon used by mocked valuation outputs.',
+      'Integrated-model planning horizon used in supporting valuation and scenario views.',
     dependencyTag: 'Horizon',
     decimals: 0,
     baseValue: 12,
@@ -895,7 +919,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: 'mo',
     helperText:
-      'Integrated deployment pacing assumption used by the mocked outputs.',
+      'Integrated deployment pacing assumption used in scenario and timing views.',
     dependencyTag: 'Timing',
     decimals: 0,
     baseValue: 18,
@@ -911,7 +935,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: '%',
     helperText:
-      'Set above zero to override the mocked margin calculation for testing.',
+      'Set above zero to override the blended margin calculation for sensitivity testing.',
     dependencyTag: 'Manual',
     decimals: 1,
     baseValue: 0,
@@ -959,7 +983,7 @@ const extensionAssumptions: AssumptionMetadata[] = [
     moduleId: 'integrated',
     unit: 'flag',
     helperText:
-      'Set above zero to force the mocked calculation into an error state.',
+      'Set above zero to force the calculation workflow into an error state for testing.',
     dependencyTag: 'Testing',
     decimals: 0,
     baseValue: 0,
@@ -968,14 +992,6 @@ const extensionAssumptions: AssumptionMetadata[] = [
     source: 'extension',
   },
 ];
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[%/]/g, ' ')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-}
 
 function titleCaseLabel(value: string) {
   return value
@@ -1005,38 +1021,47 @@ function inferDecimals(unit: string, value: number) {
 }
 
 function normalizeUnit(unit: string) {
-  switch (unit) {
+  switch (unit.toUpperCase()) {
+    case '$':
     case 'USD':
       return '$';
     case 'ETB':
       return 'ETB';
     case 'KW':
+    case 'KWH':
+    case 'KWHR':
       return 'kWh';
     case 'KM':
       return 'km';
     case 'NUMBER':
+    case 'COUNT':
       return 'count';
+    case 'YRS':
+    case 'YEAR':
+      return 'yrs';
+    case 'HOURS':
+      return 'hours';
+    case 'MINUTES':
+      return 'minutes';
     case 'TONNES':
       return 'tonnes';
+    case '%':
+      return '%';
     default:
-      return unit.toLowerCase();
+      return unit;
   }
 }
 
 function buildReferenceAssumptions() {
-  return referenceData.assumptions.base_input_cells.map<AssumptionMetadata>((cell) => {
+  return referenceWorkbookInputCells.map<AssumptionMetadata>((cell) => {
     const rule = getRowRule(cell.row_label);
-    const rowSlug = slugify(cell.row_label);
-    const columnSlug =
-      cell.column_label === 'QUANTITY' ? 'quantity' : slugify(cell.column_label);
-    const baseKey = `a2_fleet.${rowSlug}.${columnSlug}`;
     const label =
       cell.column_label === 'QUANTITY'
         ? titleCaseLabel(cell.row_label)
         : `${titleCaseLabel(cell.row_label)} (${cell.column_label})`;
 
     return {
-      key: baseKey,
+      key: cell.key,
       label,
       shortLabel:
         cell.column_label === 'QUANTITY'
@@ -1055,7 +1080,7 @@ function buildReferenceAssumptions() {
       contexts: rule?.contexts ?? ['/', '/assumptions', '/corridor-view'],
       source: 'reference',
       workbook: {
-        sheet: referenceData.assumptions.sheet,
+        sheet: cell.sheet,
         row: cell.row,
         cell: cell.cell,
         rowLabel: cell.row_label,
@@ -1197,7 +1222,7 @@ export function getBaseAssumptionBundle() {
     groups: assumptionGroups,
     metadata: assumptionMetadata,
     metadataByKey: assumptionMetadataByKey,
-    baseValues: { ...baseAssumptionValues },
-    referenceSource: referenceData.source_workbook,
+    baseValues: migrateLegacyAssumptionValues({ ...baseAssumptionValues }),
+    referenceSource: a2FleetReference.source_workbook,
   };
 }

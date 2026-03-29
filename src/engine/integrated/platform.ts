@@ -3,14 +3,15 @@ import { buildPlatformCapacityFromFleet } from '../platformCapacity';
 import { buildComputedReturnsSummary } from '../returns';
 import {
   addSeries,
+  alignSeriesToPeriods,
   buildNetAssetSeries,
   buildStatement,
   buildUnleveredFreeCashFlowSeries,
   calculateLinearDepreciation,
   clamp,
   getAssumption,
+  getRowValues,
   mapSeries,
-  shiftWithLeadingZero,
 } from './helpers';
 import type { PlatformOutput } from './types';
 
@@ -43,9 +44,23 @@ export function calculatePlatformModule({
   serviceFactor,
 }: PlatformComputationInput): PlatformComputation {
   const periods = fleet.incomeStatement.periods;
-  const fleetTrucks = shiftWithLeadingZero(
-    fleet.derivedAssumptions.rows.find((row) => row.key === 'trucks_in_operation')?.values ??
-      [],
+  const fleetTrucks = alignSeriesToPeriods(
+    periods,
+    fleet.derivedAssumptions.rows.find(
+      (row) => row.key === 'number_of_trucks_cumalative',
+    )?.values ?? [],
+  );
+  const workbookSubscriptionRevenue = getRowValues(
+    fleet.incomeStatement,
+    'platform_revenue_subscriptions',
+  );
+  const workbookPlatformCapex = addSeries(
+    getRowValues(fleet.capexDepreciation, 'software_platform_development'),
+    getRowValues(fleet.capexDepreciation, 'hardware_office_equipment'),
+  );
+  const workbookPlatformNetAssets = addSeries(
+    getRowValues(fleet.balanceSheet, 'software_platform_development'),
+    getRowValues(fleet.balanceSheet, 'hardware_office_equipment'),
   );
   const fleetSwapsPerTruck =
     assumptions['a2_fleet.number_of_swaps_per_truck_per_day.quantity'] ?? 1;
@@ -69,8 +84,6 @@ export function calculatePlatformModule({
   const cloudCostPct =
     getAssumption(assumptions, 'integrated.platform.cloud_cost_pct_revenue') / 100;
   const capexPerSite = getAssumption(assumptions, 'integrated.platform.capex_per_site_usd');
-  const softwareCapexUsd =
-    getAssumption(assumptions, 'integrated.platform.core_software_capex_usd_m') * 1_000_000;
   const assetLifeYears = getAssumption(assumptions, 'integrated.platform.asset_life_years');
   const inflation = getAssumption(assumptions, 'integrated.global.inflation_rate_pct') / 100;
   const breakevenBuffer =
@@ -117,7 +130,11 @@ export function calculatePlatformModule({
     return swapFees + subscriptionFees;
   });
 
-  const externalRevenue = fleetInternalRevenue.map((value) => value * externalRevenueShare);
+  const externalRevenue = periods.map((_period, index) => {
+    const workbookRevenue = workbookSubscriptionRevenue[index] ?? 0;
+    const analyticalUplift = fleetInternalRevenue[index] * externalRevenueShare;
+    return workbookRevenue + analyticalUplift;
+  });
   const totalRevenue = addSeries(fleetInternalRevenue, externalRevenue);
 
   const opex = periods.map((_period, index) => {
@@ -136,19 +153,17 @@ export function calculatePlatformModule({
     index === 0 ? value : Math.max(0, value - requiredSites[index - 1]),
   );
   const capex = periods.map((_period, index) => {
-    const siteCapex = sitesAdded[index] * capexPerSite;
-    const anchorCapex =
-      index === 1
-        ? ((assumptions['a2_fleet.fleet_management_software.cy_2027'] ?? 0) +
-            (assumptions['a2_fleet.hardware_and_office_equipment.cy_2027'] ?? 0))
-        : 0;
-    return siteCapex + anchorCapex + (index === 1 ? softwareCapexUsd : 0);
+    const siteControlCapex = sitesAdded[index] * capexPerSite * 0.1;
+    return (workbookPlatformCapex[index] ?? 0) + siteControlCapex;
   });
 
   const depreciation = calculateLinearDepreciation(capex, assetLifeYears);
   const ebitda = totalRevenue.map((value, index) => value - opex[index]);
   const ebit = ebitda.map((value, index) => value - depreciation[index]);
-  const netAssets = buildNetAssetSeries(capex, depreciation);
+  const modeledNetAssets = buildNetAssetSeries(capex, depreciation);
+  const netAssets = periods.map(
+    (_period, index) => workbookPlatformNetAssets[index] ?? modeledNetAssets[index] ?? 0,
+  );
   const discountRatePct = getAssumption(assumptions, 'integrated.global.discount_rate_pct');
   const taxRatePct =
     getAssumption(assumptions, 'integrated.tax_fx.effective_tax_rate_pct') / 100;

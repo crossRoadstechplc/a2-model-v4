@@ -12,7 +12,7 @@ export function RunStateAlert() {
     return (
       <AlertBanner
         title="Workbook outputs are current"
-        message="Results shown below reflect the latest successful A2 Fleet workbook replication run."
+        message="Results shown below reflect the latest successful charging/platform workbook replication run."
       />
     );
   }

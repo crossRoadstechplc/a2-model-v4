@@ -64,6 +64,9 @@ export function buildFleetOverviewKpis(output: A2FleetWorkbookOutput): Dashboard
   const derivedPeriod = output.derivedAssumptions.periods[
     output.derivedAssumptions.periods.length - 1
   ];
+  const powerPeriod = output.powerCalculations.periods[
+    output.powerCalculations.periods.length - 1
+  ];
   const incomePeriod =
     output.incomeStatement.periods[output.incomeStatement.periods.length - 1];
   const cashPeriod = output.cashFlow.periods[output.cashFlow.periods.length - 1];
@@ -72,17 +75,17 @@ export function buildFleetOverviewKpis(output: A2FleetWorkbookOutput): Dashboard
 
   return [
     {
-      id: 'trucks_in_operation',
-      label: 'Trucks in Operation',
-      value: getLastStatementValue(output.derivedAssumptions, 'trucks_in_operation'),
-      description: `Operating fleet in ${derivedPeriod}.`,
+      id: 'number_of_trucks_cumalative',
+      label: 'Trucks in Service',
+      value: getLastStatementValue(output.derivedAssumptions, 'number_of_trucks_cumalative'),
+      description: `Cumulative deployed trucks in ${derivedPeriod}.`,
       format: 'integer',
     },
     {
-      id: 'chargeable_tonnes',
-      label: 'Chargeable Tonnes',
-      value: getLastStatementValue(output.derivedAssumptions, 'chargeable_tonnes'),
-      description: `Fleet throughput in ${derivedPeriod}.`,
+      id: 'total_number_of_battery_packs',
+      label: 'Battery Packs',
+      value: getLastStatementValue(output.derivedAssumptions, 'total_number_of_battery_packs'),
+      description: `Battery inventory base in ${derivedPeriod}.`,
       format: 'number',
     },
     {
@@ -100,10 +103,10 @@ export function buildFleetOverviewKpis(output: A2FleetWorkbookOutput): Dashboard
       format: 'currencyM',
     },
     {
-      id: 'closing_cash',
-      label: 'Closing Cash',
-      value: getLastStatementValue(output.cashFlow, 'closing_cash') / 1_000_000,
-      description: `Ending liquidity in ${cashPeriod}.`,
+      id: 'cost_of_power',
+      label: 'Cost of Power',
+      value: getLastStatementValue(output.powerCalculations, 'cost_of_power') / 1_000_000,
+      description: `Power purchase cost in ${powerPeriod}.`,
       format: 'currencyM',
     },
     {
@@ -189,16 +192,16 @@ export function buildCashSeries(output: A2FleetWorkbookOutput): TrendSeries[] {
 export function buildOperationsSeries(output: A2FleetWorkbookOutput): TrendSeries[] {
   return [
     {
-      id: 'trucks_in_operation',
-      label: 'Trucks in Operation',
-      values: getSeries(output.derivedAssumptions, 'trucks_in_operation'),
+      id: 'number_of_trucks_cumalative',
+      label: 'Trucks in Service',
+      values: getSeries(output.derivedAssumptions, 'number_of_trucks_cumalative'),
       colorClassName: 'text-app-accent',
       format: 'integer',
     },
     {
-      id: 'chargeable_tonnes',
-      label: 'Chargeable Tonnes',
-      values: getSeries(output.derivedAssumptions, 'chargeable_tonnes'),
+      id: 'total_number_of_battery_packs',
+      label: 'Battery Packs',
+      values: getSeries(output.derivedAssumptions, 'total_number_of_battery_packs'),
       colorClassName: 'text-app-success',
       format: 'number',
     },
@@ -208,9 +211,11 @@ export function buildOperationsSeries(output: A2FleetWorkbookOutput): TrendSerie
 export function buildEnergyCostSeries(output: A2FleetWorkbookOutput): TrendSeries[] {
   return [
     {
-      id: 'energy_cost',
-      label: 'Energy Cost',
-      values: getSeries(output.derivedAssumptions, 'energy_cost').map((value) => value / 1_000_000),
+      id: 'cost_of_power',
+      label: 'Cost of Power',
+      values: getSeries(output.powerCalculations, 'cost_of_power').map(
+        (value) => value / 1_000_000,
+      ),
       colorClassName: 'text-app-warning',
       format: 'currencyM',
     },
@@ -225,7 +230,7 @@ export function buildIntegrityMessages(output: A2FleetWorkbookOutput): Integrity
   const closingCashRow = getStatementRow(output.cashFlow, 'closing_cash');
   const netMarginRow = getStatementRow(output.keyMetrics, 'net_margin');
   const revenueRow = getStatementRow(output.incomeStatement, 'revenue');
-  const energyRow = getStatementRow(output.incomeStatement, 'battery_charge');
+  const energyRow = getStatementRow(output.incomeStatement, 'cost_of_power_purchase_from_eep');
   const assetsRow = getStatementRow(output.balanceSheet, 'total_assets');
   const equityRow = getStatementRow(output.balanceSheet, 'total_equity');
 

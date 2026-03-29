@@ -36,9 +36,9 @@ describe('A2 Fleet dashboard integration', () => {
     expect(screen.getByTestId('returns-card-equity_irr-value')).not.toHaveTextContent(
       'Pending',
     );
-    expect(
-      screen.getByTestId('statement-table-valuation-summary').textContent,
-    ).not.toContain('IRR');
+    expect(screen.getByTestId('statement-table-valuation-summary')).toHaveTextContent(
+      'IRR',
+    );
 
     const revenue2037Cell = screen.getByTestId(
       'statement-cell-statement-table-income-statement-revenue-CY-2037',

@@ -71,6 +71,9 @@ describe('walkthrough and calculation notifications', () => {
       vi.advanceTimersByTime(MOCK_CALCULATION_DELAY_MS);
     });
 
+    const assumptionsSidebar = screen.getByTestId('assumptions-sidebar');
+    fireEvent.click(within(assumptionsSidebar).getByRole('button', { name: /Fleet/i }));
+
     const fleetSizeInput = screen.getByTestId(
       'sidebar-assumption-input-a2_fleet.number_of_trucks.cy_2027',
     );

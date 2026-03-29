@@ -27,7 +27,11 @@ describe('Assumptions panel refinements', () => {
     const visibleLabels = field.querySelectorAll('label:not(.sr-only)');
 
     expect(field.querySelector('.grid')).not.toBeNull();
-    expect(within(field).getByTestId('page-truck-year-select')).toBeInTheDocument();
+    expect(
+      within(field).getByTestId(
+        'page-annual-year-select-fleet-assumptions-data-number-of-trucks-added',
+      ),
+    ).toBeInTheDocument();
     expect(
       within(field).getByTestId('page-assumption-input-a2_fleet.number_of_trucks.cy_2027'),
     ).toBeInTheDocument();
@@ -37,13 +41,15 @@ describe('Assumptions panel refinements', () => {
   it('stacks the sidebar assumption input above the text block in narrow sidebar cards', () => {
     renderWithRouter(<AppRoutes />, '/');
 
-    const field = screen.getByTestId('sidebar-assumption-field-a2_fleet.number_of_trucks.cy_2027');
+    const field = screen.getByTestId(
+      'sidebar-assumption-field-integrated.timing.model_horizon_years',
+    );
     const input = within(field).getByTestId(
-      'sidebar-assumption-input-a2_fleet.number_of_trucks.cy_2027',
+      'sidebar-assumption-input-integrated.timing.model_horizon_years',
     );
     const title = within(field).getByRole('heading', {
       level: 4,
-      name: /Number Of Trucks \(CY-2027\)/i,
+      name: /Model horizon/i,
     });
 
     expect(input.closest('.w-full')).not.toBeNull();
@@ -54,10 +60,14 @@ describe('Assumptions panel refinements', () => {
     const user = userEvent.setup();
     renderWithRouter(<AppRoutes />, '/assumptions');
 
-    expect(screen.getByTestId('page-truck-year-select')).toBeInTheDocument();
+    const truckYearSelector = screen.getByTestId(
+      'page-annual-year-select-fleet-assumptions-data-number-of-trucks-added',
+    );
+
+    expect(truckYearSelector).toBeInTheDocument();
     expect(screen.queryByText(/Number Of Trucks \(CY-2028\)/i)).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByTestId('page-truck-year-select'), [
+    await user.selectOptions(truckYearSelector, [
       'a2_fleet.number_of_trucks.cy_2030',
     ]);
 
@@ -66,6 +76,70 @@ describe('Assumptions panel refinements', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByTestId('page-assumption-input-a2_fleet.number_of_trucks.cy_2030'),
+    ).toBeInTheDocument();
+  });
+
+  it('applies the same year selector pattern to other annual workbook assumption series', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<AppRoutes />, '/assumptions');
+
+    const stationsYearSelector = screen.getByTestId(
+      'page-annual-year-select-fleet-assumptions-data-number-of-stations',
+    );
+    const swapsPerTruckYearSelector = screen.getByTestId(
+      'page-annual-year-select-fleet-assumptions-data-number-of-swaps-per-truck-per-day',
+    );
+    const softwareYearSelector = screen.getByTestId(
+      'page-annual-year-select-platform-assumptions-data-software-platform-development',
+    );
+    const swappingBaysYearSelector = screen.getByTestId(
+      'page-annual-year-select-energy-assumptions-data-number-of-swapping-bays-per-station',
+    );
+
+    expect(stationsYearSelector).toBeInTheDocument();
+    expect(swapsPerTruckYearSelector).toBeInTheDocument();
+    expect(softwareYearSelector).toBeInTheDocument();
+    expect(swappingBaysYearSelector).toBeInTheDocument();
+    expect(screen.queryByText(/Software & Platform Development \(CY-2028\)/i)).not.toBeInTheDocument();
+
+    await user.selectOptions(swapsPerTruckYearSelector, [
+      'a2_fleet.number_of_swaps_per_truck_per_day.quantity',
+    ]);
+    await user.selectOptions(stationsYearSelector, [
+      'a2_fleet.assumptions_data.number_of_stations.cy_2032',
+    ]);
+    await user.selectOptions(softwareYearSelector, [
+      'a2_fleet.assumptions_data.software_platform_development.cy_2030',
+    ]);
+    await user.selectOptions(swappingBaysYearSelector, [
+      'a2_fleet.assumptions_data.number_of_swapping_bays_per_station.cy_2031',
+    ]);
+
+    expect(
+      screen.getByTestId(
+        'page-assumption-field-a2_fleet.number_of_swaps_per_truck_per_day.quantity',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(
+        'page-assumption-field-a2_fleet.assumptions_data.number_of_stations.cy_2032',
+      ),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByTestId(
+        'page-assumption-field-a2_fleet.assumptions_data.software_platform_development.cy_2030',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(
+        'page-assumption-input-a2_fleet.assumptions_data.software_platform_development.cy_2030',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(
+        'page-assumption-field-a2_fleet.assumptions_data.number_of_swapping_bays_per_station.cy_2031',
+      ),
     ).toBeInTheDocument();
   });
 

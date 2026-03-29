@@ -62,7 +62,7 @@ export function CurrencySelector({
           className={cn(
             'grid gap-3 items-end',
             compact
-              ? 'grid-cols-1 sm:grid-cols-[minmax(0,1fr)_7rem]'
+              ? 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_8rem]'
               : 'grid-cols-1 sm:grid-cols-[minmax(0,1fr)_8rem]',
           )}
         >
@@ -72,14 +72,15 @@ export function CurrencySelector({
               Used for consistent ETB/USD display conversion across cards, charts, and tables.
             </p>
           </div>
-          <NumericInput
-            label="Exchange rate"
-            value={fxRate}
-            decimals={1}
-            unit="ETB"
-            onCommit={onFxRateChange}
-            showLabel={false}
-            className="w-full"
+        <NumericInput
+          label="Exchange rate"
+          value={fxRate}
+          decimals={1}
+          unit="ETB"
+          showInlineUnit={false}
+          onCommit={onFxRateChange}
+          showLabel={false}
+          className="w-full"
             testId="display-currency-fx-rate-input"
           />
         </div>

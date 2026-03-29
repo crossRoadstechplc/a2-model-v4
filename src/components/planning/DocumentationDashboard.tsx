@@ -11,7 +11,7 @@ const shellLayers = [
   {
     title: 'Calculation layer',
     body:
-      'The A2 Fleet workbook replication engine runs as a pure pipeline: normalize assumptions, derive workbook-linked drivers, project revenue, build capex and depreciation, assemble source and use of funds, then produce the income statement, cash flow, balance sheet, valuation summary, and KPIs.',
+      'The charging/platform workbook engine runs as a pure pipeline: normalize assumptions, derive workbook-linked drivers, calculate power and revenue layers, build capex and depreciation, assemble source and use of funds, then produce the income statement, cash flow, balance sheet, valuation summary, and KPIs.',
   },
   {
     title: 'Planning and audit layer',
@@ -22,17 +22,17 @@ const shellLayers = [
 
 const fleetStages = [
   'Normalize stable assumption keys into workbook-oriented inputs and preserve workbook quirks where they materially affect output parity.',
-  'Build derived assumptions such as cumulative fleet, throughput, trip economics, and cascade drivers that feed later statements.',
-  'Project revenue and direct operating cost lines from the workbook-driven throughput and pricing logic.',
+  'Build derived assumptions such as cumulative trucks, swap demand, battery-pack needs, and cascade drivers that feed later statements.',
+  'Project power-sales, subscription, and direct operating cost lines from the workbook-driven demand and pricing logic.',
   'Roll forward capex, depreciation, source and use of funds, then assemble the income statement, cash flow, and balance sheet in periodized form.',
   'Calculate valuation summary outputs and KPI surfaces that feed the Executive Summary and A2 Fleet analytical pages.',
 ];
 
 const integratedLayers = [
-  'A2 Fleet is the anchor business and supplies operational demand to the broader model.',
-  'A2 Platform converts fleet-linked throughput into site sizing, software and infrastructure economics, platform revenue, opex, capex, and breakeven signals.',
-  'A2 Energy sizes battery inventory, replacement burden, provision logic, lease income, revenue-share flows, and energy capex and depreciation.',
-  'An inter-company flow layer explicitly models Fleet-to-Platform fees and Platform-to-Energy transfers before consolidated eliminations are applied.',
+  'A2 Fleet acts as the demand-driver layer and supplies truck deployment, swap demand, and service-consumption signals to the broader model.',
+  'A2 Platform converts fleet-linked throughput into site sizing, software economics, platform revenue, opex, capex, and breakeven signals.',
+  'A2 Energy sizes battery inventory, replacement burden, power-sales economics, power-cost burden, and energy capex and depreciation.',
+  'An inter-company flow layer explicitly models Fleet-to-Platform fees and Platform-to-Energy transfers while the consolidated view stays anchored to workbook totals.',
   'A sequential-with-feedback convergence layer records iteration history, max delta, override usage, and convergence status so circular dependencies remain explainable.',
 ];
 
@@ -121,7 +121,7 @@ export function DocumentationDashboard() {
 
       <SectionAccordion
         title="How the integrated model expands the base"
-        description="Platform and Energy are layered on top of the Fleet anchor, with explicit transfer flows and consolidated scaffolding."
+        description="Platform and Energy are layered on top of fleet demand, with explicit transfer flows and a workbook-anchored consolidated view."
         defaultOpen={false}
       >
         <div className="grid gap-3">

@@ -80,11 +80,11 @@ export function buildIntegrityChecks(params: {
     id: 'fleet-baseline',
     category: 'reconciliation',
     severity: failedBaselineTargets.length > 0 ? 'warning' : 'info',
-    title: 'Fleet workbook replication',
+    title: 'V2 workbook replication',
     message:
       failedBaselineTargets.length > 0
-        ? `${failedBaselineTargets.length} baseline targets are outside the configured workbook tolerance.`
-        : 'Fleet workbook replication remains within the configured baseline tolerance.',
+        ? `${failedBaselineTargets.length} baseline targets are outside the configured V2 workbook tolerance.`
+        : 'V2 charging/platform workbook replication remains within the configured baseline tolerance.',
   });
 
   const closingCash = getRowValues(params.workbook.cashFlow.rows, 'closing_cash');
@@ -249,8 +249,8 @@ export function buildIntegrityChecks(params: {
     id: 'dscr-placeholder',
     category: 'threshold',
     severity: 'info',
-    title: 'DSCR placeholder',
-    message: 'Debt service coverage checks are scaffolded for later financing completeness and currently remain informational only.',
+    title: 'DSCR watchlist',
+    message: 'Debt service coverage checks remain informational until a fuller financing schedule and debt-service layer are modeled.',
   });
 
   return checks;

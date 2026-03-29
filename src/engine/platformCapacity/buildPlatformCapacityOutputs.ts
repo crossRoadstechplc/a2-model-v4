@@ -246,7 +246,9 @@ export function buildPlatformCapacityFromFleet(params: {
   bands?: PlatformCapacityBand[];
 }) {
   const operationalTruckCounts =
-    params.fleet.derivedAssumptions.rows.find((row) => row.key === 'trucks_in_operation')
+    params.fleet.derivedAssumptions.rows.find(
+      (row) => row.key === 'number_of_trucks_cumalative',
+    )
       ?.values ?? [];
 
   return buildPlatformCapacityOutput({

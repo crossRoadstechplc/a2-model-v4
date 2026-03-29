@@ -56,6 +56,7 @@ export type A2FleetWorkbookOutput = {
   knownWorkbookQuirks: string[];
   workbookValuesBySheet: WorkbookSheetValues;
   derivedAssumptions: PeriodizedStatement;
+  powerCalculations: PeriodizedStatement;
   revenueProjection: PeriodizedStatement;
   capexDepreciation: PeriodizedStatement;
   sourceUseOfFunds: PeriodizedStatement;
@@ -189,13 +190,13 @@ function buildFleetReturnsSummary(output: {
   const baseSummary = buildComputedReturnsSummary({
     title: 'Returns / Valuation',
     basisLabel:
-      'Fleet Equity IRR is workbook-faithful and comes from the literal replication row `INCOME STATEMENT!C19:O19`. Fleet Project IRR uses a separate FCFF-style project cash flow series for investment appraisal.',
+      'Workbook Equity IRR is workbook-faithful and comes from the literal replication row `INCOME STATEMENT!C22:O22`. Project IRR uses a separate FCFF-style project cash flow series for investment appraisal.',
     projectCashFlowSeries: projectCashFlow.series,
     equityCashFlowSeries: workbookEquityIrrSeries,
     discountRatePct,
     projectIrrNotes: projectCashFlow.notes,
     equityIrrNotes: [
-      'Workbook-faithful investor IRR series from the literal replicated row `INCOME STATEMENT!C19:O19`.',
+      'Workbook-faithful investor IRR series from the literal replicated row `INCOME STATEMENT!C22:O22`.',
       'This is replication-mode logic and should match the workbook IRR behavior within tolerance.',
     ],
     npvDescription:
@@ -214,13 +215,13 @@ function buildFleetReturnsSummary(output: {
       },
       {
         type: 'equity',
-        label: 'Fleet workbook equity IRR series',
+        label: 'Workbook equity IRR series',
         values: workbookEquityIrrSeries,
-        note: 'Literal workbook replication row `INCOME STATEMENT!C19:O19` used for Equity IRR.',
+        note: 'Literal workbook replication row `INCOME STATEMENT!C22:O22` used for Equity IRR.',
       },
       {
         type: 'workbookParity',
-        label: 'Fleet workbook parity series',
+        label: 'Workbook parity series',
         values: workbookEquityIrrSeries,
         note: 'This series is the source-of-truth replication input for the workbook IRR calculation.',
       },
@@ -258,7 +259,7 @@ function buildFleetReturnsSummary(output: {
         ...baseSummary.returnsMetrics.equityIrr,
         value: workbookEquityIrr !== null ? workbookEquityIrr * 100 : null,
         description:
-          'Workbook-faithful investor IRR from the literal replicated row `INCOME STATEMENT!C19:O19`.',
+          'Workbook-faithful investor IRR from the literal replicated row `INCOME STATEMENT!C22:O22`.',
         status: workbookEquityIrr !== null ? 'ready' : 'pending',
       },
       paybackPeriod: {
@@ -289,7 +290,7 @@ function buildFleetReturnsSummary(output: {
         ...baseSummary.returnsMetrics.equityIrr,
         value: workbookEquityIrr !== null ? workbookEquityIrr * 100 : null,
         description:
-          'Workbook-faithful investor IRR from the literal replicated row `INCOME STATEMENT!C19:O19`.',
+          'Workbook-faithful investor IRR from the literal replicated row `INCOME STATEMENT!C22:O22`.',
         status: workbookEquityIrr !== null ? 'ready' : 'pending',
       },
       baseSummary.returnsMetrics.npv,
@@ -333,6 +334,14 @@ export function calculateRevenueProjection(context: WorkbookComputationContext) 
   return {
     context: nextContext,
     statement: extractStatement('revenueProjection', nextContext.workbookValuesBySheet),
+  };
+}
+
+export function calculatePowerCalculations(context: WorkbookComputationContext) {
+  const nextContext = evaluateSheet('POWER CALCULATIONS', context);
+  return {
+    context: nextContext,
+    statement: extractStatement('powerCalculations', nextContext.workbookValuesBySheet),
   };
 }
 
@@ -397,8 +406,9 @@ export function runA2FleetWorkbook(
 ): A2FleetWorkbookOutput {
   const normalizedAssumptions = normalizeAssumptions(assumptions);
   const derivedAssumptionsResult = buildDerivedAssumptions(normalizedAssumptions);
+  const powerCalculationsResult = calculatePowerCalculations(derivedAssumptionsResult.context);
   const revenueProjectionResult = calculateRevenueProjection(
-    derivedAssumptionsResult.context,
+    powerCalculationsResult.context,
   );
   const capexDepreciationResult = calculateCapexDepreciation(
     revenueProjectionResult.context,
@@ -421,6 +431,7 @@ export function runA2FleetWorkbook(
     knownWorkbookQuirks: [...a2FleetReference.known_quirks_and_audit_flags],
     workbookValuesBySheet: keyMetricsResult.context.workbookValuesBySheet,
     derivedAssumptions: derivedAssumptionsResult.statement,
+    powerCalculations: powerCalculationsResult.statement,
     revenueProjection: revenueProjectionResult.statement,
     capexDepreciation: capexDepreciationResult.statement,
     sourceUseOfFunds: sourceUseOfFundsResult.statement,

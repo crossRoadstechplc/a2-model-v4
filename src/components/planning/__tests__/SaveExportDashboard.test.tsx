@@ -19,9 +19,11 @@ describe('SaveExportDashboard integration', () => {
     expect(
       screen.getByRole('heading', { name: 'Save / Export', level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('save-export-summary-download')).toHaveTextContent(
+    expect(screen.getByTestId('save-export-pdf-download')).toHaveTextContent(
       'Available after calculation',
     );
+    expect(screen.queryByText(/Download JSON/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Download Markdown/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('calculate-button'));
 
@@ -29,19 +31,9 @@ describe('SaveExportDashboard integration', () => {
       vi.advanceTimersByTime(MOCK_CALCULATION_DELAY_MS);
     });
 
-    expect(screen.getByTestId('save-export-summary-download')).toHaveAttribute(
+    expect(screen.getByTestId('save-export-pdf-download')).toHaveAttribute(
       'download',
-      'a2-model-base-reference-summary.md',
-    );
-    expect(screen.getByTestId('save-export-report-pack-download')).toHaveAttribute(
-      'download',
-      'a2-model-base-reference-report-pack.json',
-    );
-    expect(
-      screen.getByTestId('save-export-validation-markdown-download'),
-    ).toHaveAttribute(
-      'download',
-      'a2-fleet-validation-report.md',
+      'a2-model-base-reference-summary.pdf',
     );
   });
 });

@@ -9,18 +9,25 @@ import {
   formatAssumptionValue,
   getDisplayAssumptionLabel,
   hasChangedFromBase,
+  formatNumber,
   type AssumptionMetadata,
 } from '../../model/assumptions';
 import { useAppStore } from '../../store/appStore';
 import { NumericInput } from '../ui/NumericInput';
 import { ChangedIndicator } from './ChangedIndicator';
 
-type TruckCountYearEditorProps = {
+type AnnualAssumptionYearEditorProps = {
   definitions: AssumptionMetadata[];
   context: 'sidebar' | 'page';
+  seriesKey: string;
+  seriesLabel: string;
 };
 
 function getYearFromDefinition(definition: AssumptionMetadata) {
+  if (definition.workbook?.columnLabel === 'QUANTITY') {
+    return Number.MIN_SAFE_INTEGER;
+  }
+
   const keyMatch = definition.key.match(/cy_(\d{4})/i);
   if (keyMatch) {
     return Number(keyMatch[1]);
@@ -31,13 +38,32 @@ function getYearFromDefinition(definition: AssumptionMetadata) {
     return Number(labelMatch[1]);
   }
 
+  const workbookLabelMatch = definition.workbook?.columnLabel.match(/CY-(\d{4})/i);
+  if (workbookLabelMatch) {
+    return Number(workbookLabelMatch[1]);
+  }
+
   return Number.MAX_SAFE_INTEGER;
 }
 
-export function TruckCountYearEditor({
+function getSelectorOptionLabel(definition: AssumptionMetadata) {
+  if (definition.workbook?.columnLabel === 'QUANTITY') {
+    return 'Base';
+  }
+
+  return definition.workbook?.columnLabel ?? definition.shortLabel;
+}
+
+function formatPillValue(value: number, decimals: number) {
+  return formatNumber(value, decimals);
+}
+
+export function AnnualAssumptionYearEditor({
   definitions,
   context,
-}: TruckCountYearEditorProps) {
+  seriesKey,
+  seriesLabel,
+}: AnnualAssumptionYearEditorProps) {
   const sortedDefinitions = useMemo(
     () => [...definitions].sort((left, right) => getYearFromDefinition(left) - getYearFromDefinition(right)),
     [definitions],
@@ -72,6 +98,7 @@ export function TruckCountYearEditor({
     ),
   ).length;
   const isSidebar = context === 'sidebar';
+  const yearSelectId = `${context}-annual-year-select-${seriesKey}`;
 
   return (
     <div
@@ -87,32 +114,32 @@ export function TruckCountYearEditor({
         className={
           isSidebar
             ? 'space-y-4'
-            : 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_11rem] lg:items-start'
+            : 'grid gap-4 xl:grid-cols-[minmax(0,1fr)_11rem] xl:items-start'
         }
       >
         {isSidebar ? (
           <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_9rem]">
               <div className="space-y-1">
                 <label
-                  htmlFor={`${context}-truck-year-select`}
+                  htmlFor={yearSelectId}
                   className="text-xs font-semibold uppercase tracking-[0.18em] text-app-subtle"
                 >
                   Select year
                 </label>
                 <select
-                  id={`${context}-truck-year-select`}
+                  id={yearSelectId}
                   value={selectedDefinition.key}
                   onChange={(event) => {
                     setSelectedKey(event.target.value);
                     selectAssumption(event.target.value);
                   }}
                   className="w-full rounded-xl border border-app-border bg-app-bg px-3 py-2.5 text-sm font-semibold text-app-text outline-none transition focus:border-app-accent focus:ring-2 focus:ring-app-accent/20"
-                  data-testid={`${context}-truck-year-select`}
+                  data-testid={yearSelectId}
                 >
                   {sortedDefinitions.map((definition) => (
                     <option key={definition.key} value={definition.key}>
-                      {definition.shortLabel}
+                      {getSelectorOptionLabel(definition)}
                     </option>
                   ))}
                 </select>
@@ -122,6 +149,7 @@ export function TruckCountYearEditor({
                 value={displayValue}
                 decimals={selectedDefinition.decimals}
                 unit={displayUnit}
+                showInlineUnit={false}
                 onCommit={(nextValue) =>
                   setAssumption(
                     selectedDefinition.key,
@@ -142,13 +170,16 @@ export function TruckCountYearEditor({
         <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-start gap-2">
             <h4 className="min-w-0 text-sm font-semibold leading-6 text-app-text">
-              {displayLabel}
+              {seriesLabel}
             </h4>
             <span className="inline-flex items-center rounded-full border border-app-border bg-app-panel px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
               {displayUnit}
             </span>
             <span className="inline-flex items-center rounded-full border border-app-accent/20 bg-app-accentSoft px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-app-accent">
               Year selector
+            </span>
+            <span className="inline-flex items-center rounded-full border border-app-border bg-app-panel px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
+              {getSelectorOptionLabel(selectedDefinition)}
             </span>
             {changedCount > 0 ? (
               <span className="inline-flex items-center rounded-full border border-app-warning/20 bg-app-warning/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-app-warning">
@@ -164,7 +195,7 @@ export function TruckCountYearEditor({
             ) : null}
           </div>
           <p className="max-w-3xl text-sm leading-6 text-app-subtle">
-            Select a fleet deployment year from the dropdown, then edit the truck count for that year without stepping through the full annual list.
+            Select a year from the dropdown, then edit that year&apos;s value without stepping through the full annual list.
           </p>
           <div className="flex flex-wrap gap-2">
             {sortedDefinitions.map((definition) => {
@@ -189,9 +220,10 @@ export function TruckCountYearEditor({
                       ? 'border-app-accent bg-app-accentSoft text-app-accent'
                       : 'border-app-border bg-app-panel text-app-subtle hover:text-app-text'
                   }`}
-                  data-testid={`${context}-truck-year-pill-${definition.key}`}
+                  data-testid={`${context}-annual-year-pill-${definition.key}`}
                 >
-                  {definition.shortLabel}: {definitionValue.toLocaleString()}
+                  {getSelectorOptionLabel(definition)}:{' '}
+                  {formatPillValue(definitionValue, definition.decimals)}
                   {isChanged ? ' *' : ''}
                 </button>
               );
@@ -212,24 +244,24 @@ export function TruckCountYearEditor({
           <div className="space-y-3">
             <div className="space-y-1">
               <label
-                htmlFor={`${context}-truck-year-select`}
+                htmlFor={yearSelectId}
                 className="text-xs font-semibold uppercase tracking-[0.18em] text-app-subtle"
               >
                 Select year
               </label>
               <select
-                id={`${context}-truck-year-select`}
+                id={yearSelectId}
                 value={selectedDefinition.key}
                 onChange={(event) => {
                   setSelectedKey(event.target.value);
                   selectAssumption(event.target.value);
                 }}
                 className="w-full rounded-xl border border-app-border bg-app-bg px-3 py-2.5 text-sm font-semibold text-app-text outline-none transition focus:border-app-accent focus:ring-2 focus:ring-app-accent/20"
-                data-testid={`${context}-truck-year-select`}
+                data-testid={yearSelectId}
               >
                 {sortedDefinitions.map((definition) => (
                   <option key={definition.key} value={definition.key}>
-                    {definition.shortLabel}
+                    {getSelectorOptionLabel(definition)}
                   </option>
                 ))}
               </select>
@@ -240,6 +272,7 @@ export function TruckCountYearEditor({
                 value={displayValue}
                 decimals={selectedDefinition.decimals}
                 unit={displayUnit}
+                showInlineUnit={false}
                 onCommit={(nextValue) =>
                   setAssumption(
                     selectedDefinition.key,

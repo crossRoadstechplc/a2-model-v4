@@ -1,5 +1,5 @@
-import referenceJson from '../../Docs/A2_Fleet_Model_Replication_Reference.json';
-import referenceGuideText from '../../Docs/A2_Fleet_Model_Replication_Reference.txt?raw';
+import referenceJson from '../../Docs/A2_Charging_Platform_Model_Replication_Reference.json';
+import referenceGuideText from '../../Docs/A2_Charging_Platform_Model_Replication_Reference.txt?raw';
 import { runA2FleetWorkbook, type BaselineComparison } from '../engine/a2Fleet';
 import {
   A2_FLEET_BASELINE_TOLERANCE,
@@ -7,15 +7,7 @@ import {
 } from '../engine/a2Fleet/reference';
 import { normalizeA2FleetAssumptions } from '../engine/a2Fleet/normalizeAssumptions';
 import { getBaseAssumptionBundle, type AssumptionMetadata } from './assumptions';
-
-type ReferenceBaseInputCell = {
-  cell: string;
-  row: number;
-  row_label: string;
-  unit: string;
-  column_label: string;
-  base_value: number;
-};
+import { referenceWorkbookInputCells } from './referenceWorkbookInputs';
 
 type BaselineTargetSpec = {
   sheet: WorkbookSheetName;
@@ -24,13 +16,10 @@ type BaselineTargetSpec = {
 };
 
 type ValidationReferenceShape = {
+  model_name: string;
   source_workbook: string;
   source_reference_markdown: string;
   known_quirks_and_audit_flags: string[];
-  assumptions: {
-    sheet: string;
-    base_input_cells: ReferenceBaseInputCell[];
-  };
   baseline_output_targets: Record<string, BaselineTargetSpec>;
 };
 
@@ -141,7 +130,10 @@ const referenceData = referenceJson as ValidationReferenceShape;
 export const ASSUMPTION_RECONCILIATION_TOLERANCE = 0.000000001;
 
 const SECTION_TITLES: Record<string, string> = {
+  power_calculations: 'Power Calculations',
   revenue_projection: 'Revenue Projection',
+  capex_depreciation: 'Capex & Depreciation',
+  source_use_of_funds: 'Source / Use of Funds',
   income_statement: 'Income Statement',
   cash_flow: 'Cash Flow',
   balance_sheet: 'Balance Sheet',
@@ -150,7 +142,10 @@ const SECTION_TITLES: Record<string, string> = {
 };
 
 function getGuideTitle() {
-  return referenceGuideText.split(/\r?\n/, 1)[0]?.trim() || 'A2 Fleet Workbook Validation Guide';
+  return (
+    referenceGuideText.split(/\r?\n/, 1)[0]?.trim() ||
+    'A2 Charging & Platform Workbook Validation Guide'
+  );
 }
 
 function buildCellId(sheet: string, cell: string) {
@@ -180,20 +175,36 @@ function isAssumptionMatch(actual: number, expected: number) {
 
 function getKnownAnomalyMatches(sheet: WorkbookSheetName, row: number, targetKey: string) {
   const matches = referenceData.known_quirks_and_audit_flags.filter((quirk) => {
-    if (sheet === 'INCOME STATEMENT ' && row === 8) {
-      return /C8|literal formula|C3\*C7/i.test(quirk);
-    }
-
-    if (sheet === 'INCOME STATEMENT ' && row === 12) {
-      return /N12|tax pattern/i.test(quirk);
+    if (sheet === 'ASSUMPTIONS_DATA' && row === 16) {
+      return /J16|hardcoded to 103/i.test(quirk);
     }
 
     if (sheet === 'SOURCE_USE OF FUNDS' && row === 5) {
-      return /SOURCE_USE OF FUNDS row 5|\(25%\)/i.test(quirk);
+      return /SOURCE_USE OF FUNDS!C5:M5|investor subscription \(25%\)/i.test(quirk);
+    }
+
+    if (sheet === 'INCOME STATEMENT ' && row === 10) {
+      return /N10 = M10\*1\.2/i.test(quirk);
+    }
+
+    if (sheet === 'INCOME STATEMENT ' && row === 15) {
+      return /N15 = M15\*1\.2/i.test(quirk);
+    }
+
+    if (sheet === 'CAPEX & DEPRECIATION' && (row === 6 || row === 7)) {
+      return /P6 links|P7 links/i.test(quirk);
+    }
+
+    if (sheet === 'CAPEX & DEPRECIATION' && row === 11) {
+      return /E11:P11 can go negative/i.test(quirk);
+    }
+
+    if (sheet === 'CAPEX & DEPRECIATION' && /asset_value_battery_packs/i.test(targetKey)) {
+      return /BATTERY PACKS asset value row/i.test(quirk);
     }
 
     if (sheet === 'BALANCE SHEET' && /retained_earnings/i.test(targetKey)) {
-      return /retained earnings is a plug/i.test(quirk);
+      return /retained earnings behaves as a plug/i.test(quirk);
     }
 
     return false;
@@ -234,8 +245,8 @@ export function reconcileBaseAssumptions() {
   const missingInReference: AssumptionReconciliationItem[] = [];
   const mismatched: AssumptionReconciliationItem[] = [];
 
-  referenceData.assumptions.base_input_cells.forEach((referenceCell) => {
-    const cellId = buildCellId(referenceData.assumptions.sheet, referenceCell.cell);
+  referenceWorkbookInputCells.forEach((referenceCell) => {
+    const cellId = buildCellId(referenceCell.sheet, referenceCell.cell);
     const metadata = metadataByCell.get(cellId);
 
     if (!metadata) {
@@ -244,7 +255,7 @@ export function reconcileBaseAssumptions() {
         label: referenceCell.row_label,
         groupId: null,
         unit: referenceCell.unit,
-        sheet: referenceData.assumptions.sheet,
+        sheet: referenceCell.sheet,
         cell: referenceCell.cell,
         columnLabel: referenceCell.column_label,
         row: referenceCell.row,
@@ -286,7 +297,11 @@ export function reconcileBaseAssumptions() {
   workbookMappedMetadata.forEach((metadata) => {
     const cellId = buildCellId(metadata.workbook.sheet, metadata.workbook.cell);
 
-    if (!referenceData.assumptions.base_input_cells.some((item) => buildCellId(metadata.workbook.sheet, item.cell) === cellId)) {
+    if (
+      !referenceWorkbookInputCells.some(
+        (item) => buildCellId(item.sheet, item.cell) === cellId,
+      )
+    ) {
       missingInReference.push({
         key: metadata.key,
         label: metadata.label,
@@ -321,7 +336,7 @@ export function reconcileBaseAssumptions() {
   );
 
   return {
-    totalReferenceInputs: referenceData.assumptions.base_input_cells.length,
+    totalReferenceInputs: referenceWorkbookInputCells.length,
     totalWorkbookMappedInputs: workbookMappedMetadata.length,
     matched,
     missingInApp,
@@ -407,21 +422,20 @@ function buildReferenceSources(): ValidationArtifactSource[] {
     {
       id: 'reference_json',
       label: 'Machine-readable JSON reference',
-      path: 'Docs/A2_Fleet_Model_Replication_Reference.json',
+      path: 'Docs/A2_Charging_Platform_Model_Replication_Reference.json',
       availability: 'available',
     },
     {
       id: 'reference_txt',
       label: 'Narrative TXT replication guide',
-      path: 'Docs/A2_Fleet_Model_Replication_Reference.txt',
+      path: 'Docs/A2_Charging_Platform_Model_Replication_Reference.txt',
       availability: 'available',
     },
     {
       id: 'reference_markdown',
-      label: 'Companion markdown reference',
+      label: 'Companion narrative reference',
       path: referenceData.source_reference_markdown,
-      availability: 'missing',
-      note: 'Declared by the reference set but not present in the current /Docs directory.',
+      availability: 'available',
     },
   ];
 }
@@ -444,17 +458,14 @@ export function buildValidationReport(options?: {
     assumptions.excludedNonWorkbookInputs > 0
       ? `${assumptions.excludedNonWorkbookInputs} integrated-model assumptions are excluded from the workbook baseline reconciliation because they do not map to reference input cells.`
       : null,
-    buildReferenceSources().some((item) => item.availability === 'missing')
-      ? 'Validation used the JSON and TXT references; the companion markdown file listed by the reference set is missing locally.'
-      : null,
     outputs.knownAnomalyVariances.length > 0
       ? `${outputs.knownAnomalyVariances.length} output variance(s) are tied to known workbook quirks and are separated from unexpected mismatches.`
       : null,
   ].filter((item): item is string => Boolean(item));
 
   const verdict = fitToProceed
-    ? `Base coded model matches the workbook baseline within absolute ${A2_FLEET_BASELINE_TOLERANCE.absolute} or relative ${A2_FLEET_BASELINE_TOLERANCE.relative} tolerance and is fit to proceed as the foundation for the integrated planning model.`
-    : 'Base coded model does not yet match the workbook baseline sufficiently; resolve unexpected assumption or output variances before treating it as the integrated-model foundation.';
+    ? `Base coded charging/platform model matches the workbook baseline within absolute ${A2_FLEET_BASELINE_TOLERANCE.absolute} or relative ${A2_FLEET_BASELINE_TOLERANCE.relative} tolerance and is fit to proceed as the foundation for the integrated planning model.`
+    : 'Base coded charging/platform model does not yet match the workbook baseline sufficiently; resolve unexpected assumption or output variances before treating it as the integrated-model foundation.';
 
   return {
     generatedAt,
@@ -529,7 +540,7 @@ function buildOutputSectionMarkdown(report: ValidationReport) {
 
 export function buildValidationMarkdownArtifact(report: ValidationReport) {
   const lines = [
-    '# A2 Fleet Workbook Validation Report',
+    '# A2 Charging & Platform Workbook Validation Report',
     '',
     `Generated at: ${report.generatedAt}`,
     '',

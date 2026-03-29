@@ -7,6 +7,7 @@ type NumericInputProps = {
   value: number;
   decimals?: number;
   unit?: string;
+  showInlineUnit?: boolean;
   onCommit: (value: number) => void;
   showLabel?: boolean;
   className?: string;
@@ -29,6 +30,7 @@ export function NumericInput({
   value,
   decimals = 0,
   unit,
+  showInlineUnit = true,
   onCommit,
   showLabel = true,
   className,
@@ -121,11 +123,13 @@ export function NumericInput({
           aria-label={label}
           data-testid={testId}
           className={cn(
-            'w-full rounded-xl border border-app-border bg-app-bg px-3 py-2.5 pr-16 text-right text-sm font-semibold text-app-text outline-none transition focus:border-app-accent focus:ring-2 focus:ring-app-accent/20',
+            `w-full rounded-xl border border-app-border bg-app-bg px-3 py-2.5 ${
+              unit && showInlineUnit ? 'pr-16' : 'pr-3'
+            } text-right text-sm font-semibold text-app-text outline-none transition focus:border-app-accent focus:ring-2 focus:ring-app-accent/20`,
             inputClassName,
           )}
         />
-        {unit ? (
+        {unit && showInlineUnit ? (
           <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-xs font-semibold uppercase tracking-[0.18em] text-app-subtle">
             {unit}
           </span>

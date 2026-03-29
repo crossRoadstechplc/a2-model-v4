@@ -3,8 +3,6 @@ import { AlertBanner } from '../ui/AlertBanner';
 import { SectionAccordion } from '../ui/SectionAccordion';
 import { StatusBadge } from '../ui/StatusBadge';
 import {
-  buildValidationJsonArtifact,
-  buildValidationMarkdownArtifact,
   buildValidationReport,
   type OutputReconciliationItem,
   type ValidationGateStatus,
@@ -34,10 +32,6 @@ function formatAvailability(status: 'available' | 'referenced' | 'missing') {
 
 function gateTone(status: ValidationGateStatus) {
   return status === 'pass' ? 'success' : 'warning';
-}
-
-function downloadHref(content: string, mime: string) {
-  return `data:${mime};charset=utf-8,${encodeURIComponent(content)}`;
 }
 
 function OutputVarianceCard({ item }: { item: OutputReconciliationItem }) {
@@ -111,11 +105,6 @@ export function ValidationReportDashboard() {
     () => buildValidationReport(),
     [runVersion],
   );
-  const jsonArtifact = useMemo(() => buildValidationJsonArtifact(report), [report]);
-  const markdownArtifact = useMemo(
-    () => buildValidationMarkdownArtifact(report),
-    [report],
-  );
 
   return (
     <div className="space-y-6" data-testid="validation-report-page">
@@ -129,8 +118,8 @@ export function ValidationReportDashboard() {
               Validation Report
             </h1>
             <p className="mt-3 text-sm leading-6 text-app-subtle">
-              Baseline reconciliation between the coded A2 Fleet model and the
-              workbook reference set in /Docs.
+              Baseline reconciliation between the coded charging / platform model
+              and the workbook reference set in /Docs.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -455,47 +444,6 @@ export function ValidationReportDashboard() {
         ) : null}
       </SectionAccordion>
 
-      <SectionAccordion
-        title="Export Artifacts"
-        description="Machine-readable JSON and human-readable markdown reconciliation artifacts generated from the current validation report."
-        defaultOpen={false}
-      >
-        <div className="grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-app-border bg-app-bg/75 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-app-text">JSON artifact</h3>
-              <a
-                href={downloadHref(jsonArtifact, 'application/json')}
-                download="a2-fleet-validation-report.json"
-                className="rounded-xl border border-app-border bg-app-panel px-3 py-2 text-sm font-medium text-app-text transition hover:bg-app-muted/70"
-                data-testid="validation-json-download"
-              >
-                Download JSON
-              </a>
-            </div>
-            <pre className="mt-4 max-h-[24rem] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-              {jsonArtifact}
-            </pre>
-          </div>
-
-          <div className="rounded-2xl border border-app-border bg-app-bg/75 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-app-text">Markdown artifact</h3>
-              <a
-                href={downloadHref(markdownArtifact, 'text/markdown')}
-                download="a2-fleet-validation-report.md"
-                className="rounded-xl border border-app-border bg-app-panel px-3 py-2 text-sm font-medium text-app-text transition hover:bg-app-muted/70"
-                data-testid="validation-markdown-download"
-              >
-                Download Markdown
-              </a>
-            </div>
-            <pre className="mt-4 max-h-[24rem] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-              {markdownArtifact}
-            </pre>
-          </div>
-        </div>
-      </SectionAccordion>
     </div>
   );
 }

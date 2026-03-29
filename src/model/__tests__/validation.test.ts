@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   A2_FLEET_BASELINE_TOLERANCE,
 } from '../../engine/a2Fleet/reference';
+import { referenceWorkbookInputCells } from '../referenceWorkbookInputs';
 import {
   buildValidationJsonArtifact,
   buildValidationMarkdownArtifact,
@@ -14,17 +15,20 @@ import {
 describe('validation reconciliation', () => {
   it('reconciles workbook-backed base assumptions against the reference contract', () => {
     const reconciliation = reconcileBaseAssumptions();
+    const trucks2027 = reconciliation.matched.find(
+      (item) => item.key === 'a2_fleet.number_of_trucks.cy_2027',
+    );
 
-    expect(reconciliation.totalReferenceInputs).toBe(33);
-    expect(reconciliation.totalWorkbookMappedInputs).toBe(33);
-    expect(reconciliation.matched).toHaveLength(33);
+    expect(reconciliation.totalReferenceInputs).toBe(referenceWorkbookInputCells.length);
+    expect(reconciliation.totalWorkbookMappedInputs).toBe(referenceWorkbookInputCells.length);
+    expect(reconciliation.matched).toHaveLength(referenceWorkbookInputCells.length);
     expect(reconciliation.missingInApp).toHaveLength(0);
     expect(reconciliation.missingInReference).toHaveLength(0);
     expect(reconciliation.mismatched).toHaveLength(0);
-    expect(reconciliation.transformed).toHaveLength(33);
-    expect(reconciliation.matched[0]).toMatchObject({
+    expect(reconciliation.transformed).toHaveLength(referenceWorkbookInputCells.length);
+    expect(trucks2027).toMatchObject({
       key: 'a2_fleet.number_of_trucks.cy_2027',
-      cell: 'D3',
+      cell: 'D5',
       referenceValue: 714,
       appValue: 714,
       status: 'matched',
@@ -34,7 +38,7 @@ describe('validation reconciliation', () => {
   it('reconciles baseline outputs against reference targets within tolerance', () => {
     const reconciliation = reconcileBaselineOutputs();
     const revenue = reconciliation.sections.find(
-      (item) => item.targetKey === 'revenue_projection.revenue_from_freight_charges',
+      (item) => item.targetKey === 'revenue_projection.revenue_from_power_sales',
     );
 
     expect(reconciliation.totalTargets).toBe(8);
@@ -43,8 +47,8 @@ describe('validation reconciliation', () => {
     expect(reconciliation.unexpectedVariances).toHaveLength(0);
     expect(revenue).toBeDefined();
     expect(revenue?.periods[0].period).toBe('CY-2027');
-    expect(revenue?.periods[0].expected).toBeCloseTo(34_893_870.9677419, 6);
-    expect(revenue?.periods[0].actual).toBeCloseTo(34_893_870.9677419, 6);
+    expect(revenue?.periods[0].expected).toBeCloseTo(15_512_853.9589442, 6);
+    expect(revenue?.periods[0].actual).toBeCloseTo(15_512_853.9589442, 6);
     expect(revenue?.periods[0].withinTolerance).toBe(true);
   });
 
@@ -70,11 +74,16 @@ describe('validation reconciliation', () => {
 
     expect(report.fitToProceed).toBe(true);
     expect(report.gateStatus).toBe('pass');
+    expect(report.referenceSources.find((item) => item.id === 'workbook')?.path).toBe(
+      'A2 E FLEET OPERATIONS  FINANCIALS-VER 2.xlsx',
+    );
     expect(parsed.generatedAt).toBe('2026-03-25T00:00:00.000Z');
     expect(parsed.outputs.passedTargets).toBe(8);
-    expect(markdownArtifact).toContain('# A2 Fleet Workbook Validation Report');
+    expect(markdownArtifact).toContain('# A2 Charging & Platform Workbook Validation Report');
     expect(markdownArtifact).toContain('Gate status: PASS');
-    expect(markdownArtifact).toContain('Matched assumptions: 33');
+    expect(markdownArtifact).toContain(
+      `Matched assumptions: ${referenceWorkbookInputCells.length}`,
+    );
     expect(markdownArtifact).toContain('Passed targets: 8/8');
   });
 });

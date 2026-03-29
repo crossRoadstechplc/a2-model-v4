@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { AppRoutes } from '../../../app/AppRoutes';
 import {
@@ -54,6 +54,9 @@ describe('run-state workflow', () => {
     const previousValue = screen.getByTestId(
       'kpi-card-investor_25_stake_value-value',
     ).textContent;
+    const assumptionsSidebar = screen.getByTestId('assumptions-sidebar');
+
+    fireEvent.click(within(assumptionsSidebar).getByRole('button', { name: /Fleet/i }));
 
     const fleetSizeInput = screen.getByTestId(
       'sidebar-assumption-input-a2_fleet.number_of_trucks.cy_2027',

@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useDisplayCurrency } from '../../hooks/useDisplayCurrency';
 import {
+  type AssumptionMetadata,
   getBaseAssumptionBundle,
   getVisibleAssumptionMetadata,
 } from '../../model/assumptions';
@@ -8,15 +9,108 @@ import { useAppStore } from '../../store/appStore';
 import { ArrowTopRightIcon, SlidersIcon } from '../ui/icons';
 import { SectionAccordion } from '../ui/SectionAccordion';
 import { StatusBadge } from '../ui/StatusBadge';
+import { AnnualAssumptionYearEditor } from './AnnualAssumptionYearEditor';
 import { AssumptionField } from './AssumptionField';
 import { CurrencySelector } from './CurrencySelector';
-import { TruckCountYearEditor } from './TruckCountYearEditor';
 
 type AssumptionsEditorProps = {
   context: 'sidebar' | 'page';
 };
 
 const DISPLAY_CURRENCY_FX_KEY = 'integrated.tax_fx.reference_fx_rate';
+
+type GroupedAssumptionEntry =
+  | { type: 'annual'; seriesKey: string; seriesLabel: string; items: AssumptionMetadata[] }
+  | { type: 'single'; item: AssumptionMetadata };
+
+function buildWorkbookSeriesKey(definition: AssumptionMetadata) {
+  if (!definition.workbook) {
+    return null;
+  }
+
+  return `${definition.groupId}:${definition.workbook.sheet}:${definition.workbook.rowLabel}`;
+}
+
+function isAnnualSeriesDefinition(definition: AssumptionMetadata) {
+  const keyLooksAnnual = /\.cy_\d{4}$/i.test(definition.key);
+  const shortLabelLooksAnnual = /^CY-\d{4}$/i.test(definition.shortLabel);
+  const workbookLabelLooksAnnual = /^CY-\d{4}$/i.test(
+    definition.workbook?.columnLabel ?? '',
+  );
+
+  return keyLooksAnnual || shortLabelLooksAnnual || workbookLabelLooksAnnual;
+}
+
+function buildAnnualSeriesKey(definition: AssumptionMetadata) {
+  const workbookSeriesKey = buildWorkbookSeriesKey(definition);
+  if (workbookSeriesKey) {
+    return workbookSeriesKey;
+  }
+
+  return definition.key.replace(/\.cy_\d{4}$/i, '');
+}
+
+function buildAnnualSeriesLabel(definition: AssumptionMetadata) {
+  return definition.label.replace(/\s*\(CY-\d{4}\)\s*$/i, '');
+}
+
+function groupAssumptionEntries(items: AssumptionMetadata[]) {
+  const annualSeriesMap = new Map<string, AssumptionMetadata[]>();
+  const entries: GroupedAssumptionEntry[] = [];
+  const workbookSeriesCounts = items.reduce<Map<string, number>>((map, item) => {
+    const workbookSeriesKey = buildWorkbookSeriesKey(item);
+
+    if (workbookSeriesKey) {
+      map.set(workbookSeriesKey, (map.get(workbookSeriesKey) ?? 0) + 1);
+    }
+
+    return map;
+  }, new Map<string, number>());
+
+  items.forEach((item) => {
+    const workbookSeriesKey = buildWorkbookSeriesKey(item);
+    const shouldGroupAsWorkbookSeries =
+      workbookSeriesKey !== null && (workbookSeriesCounts.get(workbookSeriesKey) ?? 0) > 1;
+    const shouldGroupAsAnnualSeries =
+      shouldGroupAsWorkbookSeries || isAnnualSeriesDefinition(item);
+
+    if (!shouldGroupAsAnnualSeries) {
+      entries.push({ type: 'single', item });
+      return;
+    }
+
+    const seriesKey = buildAnnualSeriesKey(item);
+    const existing = annualSeriesMap.get(seriesKey);
+
+    if (existing) {
+      existing.push(item);
+      return;
+    }
+
+    annualSeriesMap.set(seriesKey, [item]);
+    entries.push({
+      type: 'annual',
+      seriesKey,
+      seriesLabel: buildAnnualSeriesLabel(item),
+      items: annualSeriesMap.get(seriesKey) ?? [item],
+    });
+  });
+
+  return entries.map((entry) => {
+    if (entry.type === 'single') {
+      return entry;
+    }
+
+    if (entry.items.length < 2) {
+      return {
+        type: 'single',
+        item: entry.items[0],
+      } satisfies GroupedAssumptionEntry;
+    }
+
+    return entry;
+  });
+}
 
 export function AssumptionsEditor({ context }: AssumptionsEditorProps) {
   const location = useLocation();
@@ -102,8 +196,8 @@ export function AssumptionsEditor({ context }: AssumptionsEditorProps) {
               </h1>
               <p className="mt-3 text-sm leading-6 text-app-subtle">
                 All grouped assumptions are editable here. Changes immediately update
-                the shared assumption state used by the sidebar and the mocked
-                analytical outputs.
+                the shared assumption state used by the sidebar, workbook-backed
+                outputs, and integrated analytical views.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -137,12 +231,7 @@ export function AssumptionsEditor({ context }: AssumptionsEditorProps) {
       )}
 
       {visibleGroups.map((group, index) => {
-        const truckCountItems = group.items.filter((definition) =>
-          definition.key.startsWith('a2_fleet.number_of_trucks.cy_'),
-        );
-        const standardItems = group.items.filter(
-          (definition) => !definition.key.startsWith('a2_fleet.number_of_trucks.cy_'),
-        );
+        const groupedItems = groupAssumptionEntries(group.items);
 
         return (
           <SectionAccordion
@@ -181,16 +270,23 @@ export function AssumptionsEditor({ context }: AssumptionsEditorProps) {
                   </button>
                 </div>
               ) : null}
-              {truckCountItems.length > 0 ? (
-                <TruckCountYearEditor definitions={truckCountItems} context={context} />
-              ) : null}
-              {standardItems.map((definition) => (
-                <AssumptionField
-                  key={definition.key}
-                  definition={definition}
-                  context={context}
-                />
-              ))}
+              {groupedItems.map((entry) =>
+                entry.type === 'annual' ? (
+                  <AnnualAssumptionYearEditor
+                    key={entry.seriesKey}
+                    definitions={entry.items}
+                    context={context}
+                    seriesKey={entry.seriesKey.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}
+                    seriesLabel={entry.seriesLabel}
+                  />
+                ) : (
+                  <AssumptionField
+                    key={entry.item.key}
+                    definition={entry.item}
+                    context={context}
+                  />
+                ),
+              )}
             </div>
           </SectionAccordion>
         );

@@ -33,20 +33,17 @@ describe('integrated energy module', () => {
       serviceFactor: 1,
     });
 
-    const trucks2027 =
-      fleet.derivedAssumptions.rows.find((row) => row.key === 'trucks_in_operation')
-        ?.values[0] ?? 0;
-    const packsPerTruck = assumptions['integrated.energy.battery_packs_per_truck'];
-    const spareBuffer =
-      assumptions['integrated.energy.spare_battery_buffer_pct'] / 100;
+    const required2027 =
+      fleet.derivedAssumptions.rows.find(
+        (row) => row.key === 'total_number_of_battery_packs',
+      )?.values[0] ?? 0;
     const provisionRate = assumptions['integrated.energy.provision_rate_pct'] / 100;
 
-    const expectedRequired = trucks2027 * packsPerTruck * (1 + spareBuffer);
-    const expectedProvisioned = expectedRequired * provisionRate;
+    const expectedProvisioned = required2027 * provisionRate;
 
     expect(
       getRowValue(energy.operations.rows, 'battery_packs_required', 1),
-    ).toBeCloseTo(expectedRequired, 6);
+    ).toBeCloseTo(required2027, 6);
     expect(
       getRowValue(energy.operations.rows, 'battery_packs_provisioned', 1),
     ).toBeCloseTo(expectedProvisioned, 6);

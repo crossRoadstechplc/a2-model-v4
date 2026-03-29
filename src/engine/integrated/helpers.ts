@@ -23,6 +23,18 @@ export function shiftWithLeadingZero(values: number[]) {
   return [0, ...values];
 }
 
+export function alignSeriesToPeriods(periods: string[], values: number[]) {
+  if (values.length === periods.length) {
+    return values;
+  }
+
+  if (values.length === periods.length - 1) {
+    return shiftWithLeadingZero(values);
+  }
+
+  return periods.map((_period, index) => values[index] ?? 0);
+}
+
 export function addSeries(...series: number[][]) {
   const length = series[0]?.length ?? 0;
   return Array.from({ length }, (_, index) =>
@@ -134,4 +146,11 @@ export function buildStatement(
 
 export function getAssumption(values: Record<string, number>, key: string) {
   return values[key] ?? 0;
+}
+
+export function getRowValues(
+  statement: Pick<PeriodizedStatement, 'periods' | 'rows'>,
+  key: string,
+) {
+  return statement.rows.find((row) => row.key === key)?.values ?? [];
 }

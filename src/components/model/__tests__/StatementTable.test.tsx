@@ -26,7 +26,7 @@ describe('StatementTable', () => {
       'statement-cell-statement-table-income-statement-revenue-CY-2037',
     );
 
-    expect(revenue2037Cell).toHaveTextContent('$577.5M');
+    expect(revenue2037Cell).toHaveTextContent('$281.8M');
     expect(revenue2037Cell).toHaveAttribute('data-state', 'changed');
     expect(
       screen.getByTestId('statement-table-income-statement').textContent,
@@ -70,7 +70,7 @@ describe('StatementTable', () => {
       screen.getByTestId(
         'statement-cell-statement-table-income-statement-etb-revenue-CY-2037',
       ),
-    ).toHaveTextContent('ETB 89.51B');
+    ).toHaveTextContent('ETB 43.67B');
     expect(screen.getAllByText('ETB').length).toBeGreaterThan(0);
   });
 });

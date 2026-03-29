@@ -50,7 +50,7 @@ function AnalyticalPageHeader({
         <div className="flex flex-wrap gap-2">
           <StatusBadge tone="accent">{pageBadge}</StatusBadge>
           <StatusBadge tone={runState === 'ready' ? 'success' : 'neutral'}>
-            A2 Fleet workbook
+            Charging / platform workbook
           </StatusBadge>
           {lastCalculatedAt ? (
             <StatusBadge tone="neutral">
@@ -88,7 +88,7 @@ function PreCalculationState({
   if (runState === 'running' && !hasSuccessfulCalculation) {
     return (
       <LoadingState
-        title="Running the A2 Fleet workbook"
+        title="Running the charging / platform workbook"
         description="The first workbook replication pass is in progress. This page will populate once the calculation completes."
       />
     );
@@ -116,7 +116,7 @@ export function ExecutiveSummaryDashboard() {
     <div className="space-y-6">
       <AnalyticalPageHeader
         title="Executive Summary"
-        intro="Investor-facing highlights from the A2 Fleet workbook, organized into the few sections needed for first-pass feasibility review."
+        intro="Investor-facing highlights from the combined charging / platform workbook, organized into the same executive shell for workbook-backed feasibility review."
         pageBadge="Executive view"
       />
 
@@ -246,20 +246,20 @@ export function ExecutiveSummaryDashboard() {
             meta={<StatusBadge tone="neutral">Collapsed by default</StatusBadge>}
           >
             <div className="grid gap-4 xl:grid-cols-2">
-              <TrendChartCard
-                title="Fleet deployment and throughput"
-                description="Operating fleet scale and chargeable tonnes progress together through the build-out."
-                periods={workbook.derivedAssumptions.periods}
-                series={buildOperationsSeries(workbook)}
+                <TrendChartCard
+                  title="Fleet deployment and throughput"
+                  description="Deployed trucks and battery inventory progress together through the fleet-demand build-out."
+                  periods={workbook.derivedAssumptions.periods}
+                  series={buildOperationsSeries(workbook)}
                 previousSeries={
                   previousWorkbook ? buildOperationsSeries(previousWorkbook) : undefined
                 }
                 dataTestId="executive-chart-operations"
               />
               <TrendChartCard
-                title="Energy cost trend"
-                description="Energy spend is tracked separately because it is the dominant direct operating burden in the workbook."
-                periods={workbook.derivedAssumptions.periods}
+                title="Power cost trend"
+                description="Power purchase cost is tracked separately because it is the dominant direct operating burden in the workbook."
+                periods={workbook.powerCalculations.periods}
                 series={buildEnergyCostSeries(workbook)}
                 previousSeries={
                   previousWorkbook ? buildEnergyCostSeries(previousWorkbook) : undefined
@@ -298,7 +298,7 @@ export function FleetAnalyticsDashboard() {
     <div className="space-y-6">
       <AnalyticalPageHeader
         title="A2 Fleet"
-        intro="Workbook-replicated operating, financial, funding, and KPI views for the A2 Fleet business case."
+        intro="Fleet demand-driver, battery-base, and workbook-backed financial views for the combined charging / platform model."
         pageBadge="Fleet analysis"
       />
 
@@ -336,7 +336,7 @@ export function FleetAnalyticsDashboard() {
                 />
                 <TrendChartCard
                   title="Fleet deployment and throughput"
-                  description="Operating trucks and chargeable tonnes from the derived assumption cascade."
+                  description="Deployed trucks and battery inventory from the workbook demand cascade."
                   periods={workbook.derivedAssumptions.periods}
                   series={buildOperationsSeries(workbook)}
                   previousSeries={
@@ -356,9 +356,9 @@ export function FleetAnalyticsDashboard() {
             <div className="space-y-4">
               <div className="grid gap-4 xl:grid-cols-2">
                 <TrendChartCard
-                  title="Energy cost"
-                  description="Energy cost trend from the workbook operating cascade."
-                  periods={workbook.derivedAssumptions.periods}
+                  title="Power cost"
+                  description="Power purchase cost trend from the workbook energy cascade."
+                  periods={workbook.powerCalculations.periods}
                   series={buildEnergyCostSeries(workbook)}
                   previousSeries={
                     previousWorkbook ? buildEnergyCostSeries(previousWorkbook) : undefined
@@ -367,16 +367,16 @@ export function FleetAnalyticsDashboard() {
                 />
                 <StatementTable
                   title="Operational Drivers"
-                  description="Selected derived assumptions that directly feed revenue and energy cost."
+                  description="Selected workbook demand and infrastructure drivers that feed power sales and asset sizing."
                   statement={workbook.derivedAssumptions}
                   previousStatement={previousWorkbook?.derivedAssumptions}
                   rowKeys={[
-                    'trucks_in_operation',
-                    'fleet_km',
-                    'energy_purchased',
-                    'energy_cost',
-                    'fleet_trips',
-                    'chargeable_tonnes',
+                    'number_of_stations',
+                    'number_of_trucks_added',
+                    'number_of_trucks_cumalative',
+                    'number_of_chargers_required',
+                    'number_of_swapping_bays_per_station',
+                    'total_number_of_battery_packs',
                   ]}
                   dataTestId="statement-table-operational-drivers"
                 />

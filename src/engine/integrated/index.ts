@@ -9,7 +9,7 @@ import {
   buildUnleveredFreeCashFlowSeries,
   clamp,
   getAssumption,
-  subtractSeries,
+  getRowValues,
 } from './helpers';
 import { calculatePlatformModule } from './platform';
 import type {
@@ -127,84 +127,64 @@ function buildConsolidatedOutput(params: {
   const { assumptions, fleet, platform, energy, intercompany } = params;
   const periods = fleet.incomeStatement.periods;
   const eliminations = buildEliminations(periods, intercompany);
-  const fleetRevenue =
-    fleet.incomeStatement.rows.find((row) => row.key === 'revenue')?.values ?? [];
-  const fleetBatteryCharge =
-    fleet.incomeStatement.rows.find((row) => row.key === 'battery_charge')?.values ?? [];
-  const fleetOpex =
-    fleet.incomeStatement.rows.find((row) => row.key === 'operating_expenses')?.values ?? [];
-  const fleetVariableOpex =
-    fleet.incomeStatement.rows.find((row) => row.key === 'variable_opex')?.values ?? [];
-  const fleetDepreciation =
-    fleet.incomeStatement.rows.find((row) => row.key === 'depreciation')?.values ?? [];
-  const fleetNetIncome =
-    fleet.incomeStatement.rows.find((row) => row.key === 'net_income')?.values ?? [];
-  const fleetClosingCash =
-    fleet.cashFlow.rows.find((row) => row.key === 'closing_cash')?.values ?? [];
-  const fleetAssets =
-    fleet.balanceSheet.rows.find((row) => row.key === 'total_assets')?.values ?? [];
-  const fleetEquity =
-    fleet.balanceSheet.rows.find((row) => row.key === 'total_equity')?.values ?? [];
-
-  const totalRevenuePreElimination = addSeries(
-    fleetRevenue,
-    platform.derived.totalRevenue,
-    energy.derived.totalRevenue,
+  const powerSalesRevenue = getRowValues(fleet.incomeStatement, 'revenue');
+  const subscriptionRevenue = getRowValues(
+    fleet.incomeStatement,
+    'platform_revenue_subscriptions',
   );
+  const fleetPowerCost = getRowValues(
+    fleet.incomeStatement,
+    'cost_of_power_purchase_from_eep',
+  );
+  const fleetOpex = getRowValues(fleet.incomeStatement, 'operating_expenses');
+  const fleetVariableOpex = getRowValues(fleet.incomeStatement, 'variable_opex');
+  const fleetBatteryLeaseCharges = getRowValues(
+    fleet.incomeStatement,
+    'battery_lease_charges',
+  );
+  const fleetEbitda = getRowValues(fleet.incomeStatement, 'ebitda');
+  const fleetDepreciation = getRowValues(fleet.incomeStatement, 'depreciation');
+  const fleetEbit = getRowValues(fleet.incomeStatement, 'ebt');
+  const fleetTax = getRowValues(fleet.incomeStatement, 'tax');
+  const fleetNetIncome = getRowValues(fleet.incomeStatement, 'eat_net_income');
+  const fleetClosingCash = getRowValues(fleet.cashFlow, 'closing_cash');
+  const fleetNetChangeInCash = getRowValues(fleet.cashFlow, 'net_change_in_cash');
+  const fleetCapex = getRowValues(fleet.cashFlow, 'capex');
+  const fleetAssets = getRowValues(fleet.balanceSheet, 'total_assets');
+  const fleetEquity = getRowValues(fleet.balanceSheet, 'total_equity');
+  const totalInternalFlows =
+    intercompany.statement.rows.find((row) => row.key === 'total_internal_flows')?.values ?? [];
+  const consolidatedRevenue = addSeries(powerSalesRevenue, subscriptionRevenue);
+  const totalRevenuePreElimination = addSeries(consolidatedRevenue, totalInternalFlows);
   const internalRevenueElimination = intercompany.statement.rows
     .find((row) => row.key === 'total_internal_flows')
     ?.values.map((value) => -value) ?? [];
-  const consolidatedRevenue = addSeries(
-    totalRevenuePreElimination,
-    internalRevenueElimination,
-  );
-  const operatingCostsPreElimination = addSeries(
-    fleetBatteryCharge,
+  const consolidatedOperatingCostsBase = addSeries(
+    fleetPowerCost,
     fleetOpex,
     fleetVariableOpex,
-    intercompany.fleetToPlatformFees,
-    platform.derived.opex,
-    intercompany.platformToEnergyLease,
-    intercompany.platformToEnergyRevenueShare,
-    energy.derived.opex,
+    fleetBatteryLeaseCharges,
+  );
+  const operatingCostsPreElimination = addSeries(
+    consolidatedOperatingCostsBase,
+    totalInternalFlows,
   );
   const internalExpenseElimination = intercompany.statement.rows
     .find((row) => row.key === 'total_internal_flows')
     ?.values.map((value) => -value) ?? [];
-  const consolidatedOperatingCosts = addSeries(
-    operatingCostsPreElimination,
-    internalExpenseElimination,
-  );
-  const consolidatedDepreciation = addSeries(
-    fleetDepreciation,
-    platform.derived.depreciation,
-    energy.derived.depreciation,
-  );
-  const consolidatedEbitda = subtractSeries(
-    consolidatedRevenue,
-    consolidatedOperatingCosts,
-  );
-  const consolidatedEbit = subtractSeries(consolidatedEbitda, consolidatedDepreciation);
-  const taxRate = getAssumption(assumptions, 'integrated.tax_fx.effective_tax_rate_pct') / 100;
-  const consolidatedTax = consolidatedEbit.map((value) =>
-    value > 0 ? value * taxRate : 0,
-  );
-  const consolidatedNetIncome = subtractSeries(consolidatedEbit, consolidatedTax);
-  const consolidatedCapex = addSeries(
-    platform.derived.capex,
-    energy.derived.capex,
-  );
-  const consolidatedNetCash = subtractSeries(
-    addSeries(fleetNetIncome, platform.derived.ebitda, energy.derived.ebitda),
-    consolidatedCapex,
-  );
-  const consolidatedAssets = addSeries(
-    fleetAssets,
-    platform.capexDepreciation.rows.find((row) => row.key === 'net_assets')?.values ?? [],
-    energy.capexDepreciation.rows.find((row) => row.key === 'net_assets')?.values ?? [],
-  );
-  const consolidatedEquity = addSeries(fleetEquity, consolidatedNetIncome);
+  const consolidatedOperatingCosts = consolidatedOperatingCostsBase;
+  const consolidatedDepreciation = fleetDepreciation;
+  const consolidatedEbitda = fleetEbitda;
+  const consolidatedEbit = fleetEbit;
+  const consolidatedTax = fleetTax;
+  const consolidatedNetIncome = fleetNetIncome;
+  const consolidatedCapex = fleetCapex;
+  const consolidatedNetCash = fleetNetChangeInCash;
+  const consolidatedAssets = fleetAssets;
+  const consolidatedEquity = fleetEquity;
   const discountRatePct = getAssumption(assumptions, 'integrated.global.discount_rate_pct');
+  const taxRate = getAssumption(assumptions, 'integrated.tax_fx.effective_tax_rate_pct') / 100;
+  const analyticalExpansionCapex = addSeries(platform.derived.capex, energy.derived.capex);
   const terminalBookValue = consolidatedEquity[consolidatedEquity.length - 1] ?? 0;
   const consolidatedReturnCashFlowSeries = buildUnleveredFreeCashFlowSeries({
     ebit: consolidatedEbit,
@@ -222,7 +202,7 @@ function buildConsolidatedOutput(params: {
         projectCashFlowSeries: consolidatedReturnCashFlowSeries,
         discountRatePct,
         projectIrrNotes: [
-          'Project IRR is computed only after internal platform and energy transfers are eliminated from the consolidated statement scaffold.',
+          'Project IRR is computed only after internal platform and energy transfers are eliminated from the consolidated statement set.',
           'Working capital and a full exit valuation policy are not yet modeled explicitly in the integrated stack.',
         ],
         equityIrrNotes: [
@@ -289,7 +269,7 @@ function buildConsolidatedOutput(params: {
         key: 'operating_costs',
         label: 'Operating Costs',
         unit: '$',
-        values: consolidatedOperatingCosts,
+        values: operatingCostsPreElimination,
       },
       {
         key: 'internal_expense_elimination',
@@ -339,7 +319,7 @@ function buildConsolidatedOutput(params: {
         key: 'platform_energy_capex',
         label: 'Platform + Energy Capex',
         unit: '$',
-        values: consolidatedCapex,
+        values: analyticalExpansionCapex,
       },
       {
         key: 'net_cash_after_expansion',
@@ -359,15 +339,13 @@ function buildConsolidatedOutput(params: {
         key: 'platform_assets',
         label: 'Platform Net Assets',
         unit: '$',
-        values:
-          platform.capexDepreciation.rows.find((row) => row.key === 'net_assets')?.values ?? [],
+        values: getRowValues(platform.capexDepreciation, 'net_assets'),
       },
       {
         key: 'energy_assets',
         label: 'Energy Net Assets',
         unit: '$',
-        values:
-          energy.capexDepreciation.rows.find((row) => row.key === 'net_assets')?.values ?? [],
+        values: getRowValues(energy.capexDepreciation, 'net_assets'),
       },
       {
         key: 'total_assets',
@@ -388,7 +366,7 @@ function buildConsolidatedOutput(params: {
         label: 'Consolidated Revenue',
         value: consolidatedRevenue[consolidatedRevenue.length - 1] / 1_000_000,
         format: 'currencyM',
-        description: `Consolidated scaffold revenue in ${periods[periods.length - 1]}.`,
+        description: `Workbook-anchored consolidated revenue in ${periods[periods.length - 1]}.`,
       },
       {
         id: 'consolidated_ebitda_margin',
@@ -400,7 +378,7 @@ function buildConsolidatedOutput(params: {
                 consolidatedRevenue[consolidatedRevenue.length - 1]) *
               100,
         format: 'percent',
-        description: `Consolidated scaffold EBITDA margin in ${periods[periods.length - 1]}.`,
+        description: `Workbook-anchored consolidated EBITDA margin in ${periods[periods.length - 1]}.`,
       },
       {
         id: 'internal_flow_ratio',
@@ -421,7 +399,7 @@ function buildConsolidatedOutput(params: {
         label: 'Consolidated Assets',
         value: consolidatedAssets[consolidatedAssets.length - 1] / 1_000_000,
         format: 'currencyM',
-        description: `Consolidated scaffold total assets in ${periods[periods.length - 1]}.`,
+        description: `Workbook-anchored consolidated total assets in ${periods[periods.length - 1]}.`,
       },
     ],
     returnsSummary,

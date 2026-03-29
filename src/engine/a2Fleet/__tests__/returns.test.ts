@@ -8,12 +8,12 @@ import {
 } from '../returns';
 
 describe('a2 fleet returns builders', () => {
-  it('builds the literal workbook-equity IRR series from INCOME STATEMENT!C19:O19', () => {
+  it('builds the literal workbook-equity IRR series from INCOME STATEMENT!C22:O22', () => {
     const output = runA2FleetWorkbook(getBaseAssumptionBundle().baseValues);
     const series = buildFleetWorkbookEquityIrrSeries(output.workbookValuesBySheet);
 
-    expect(series[0]).toBeCloseTo(-61_480_000, 6);
-    expect(series[series.length - 1]).toBeCloseTo(224_483_819.973694, 6);
+    expect(series[0]).toBeCloseTo(-34_000_000, 6);
+    expect(series[series.length - 1]).toBeCloseTo(162_624_337.084091, 4);
     expect(series).toHaveLength(13);
   });
 
@@ -22,7 +22,7 @@ describe('a2 fleet returns builders', () => {
     const series = buildFleetWorkbookEquityIrrSeries(output.workbookValuesBySheet);
     const workbookIrr = getFleetWorkbookEquityIrrValue(output.workbookValuesBySheet);
 
-    expect(workbookIrr).toBeCloseTo(0.165670780707392, 10);
+    expect(workbookIrr).toBeCloseTo(0.16517773956309, 10);
     expect(calculateIrr(series)).toBeCloseTo(workbookIrr ?? 0, 10);
   });
 

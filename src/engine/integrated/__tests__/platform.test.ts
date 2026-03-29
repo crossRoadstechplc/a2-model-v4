@@ -21,7 +21,9 @@ describe('integrated platform module', () => {
     });
 
     const trucks2027 =
-      fleet.derivedAssumptions.rows.find((row) => row.key === 'trucks_in_operation')
+      fleet.derivedAssumptions.rows.find(
+        (row) => row.key === 'number_of_trucks_cumalative',
+      )
         ?.values[0] ?? 0;
     const swapsPerTruck =
       assumptions['a2_fleet.number_of_swaps_per_truck_per_day.quantity'];

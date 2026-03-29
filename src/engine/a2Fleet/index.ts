@@ -7,6 +7,7 @@ export {
   runA2FleetWorkbook,
   normalizeAssumptions,
   buildDerivedAssumptions,
+  calculatePowerCalculations,
   calculateRevenueProjection,
   calculateCapexDepreciation,
   calculateSourceUseOfFunds,

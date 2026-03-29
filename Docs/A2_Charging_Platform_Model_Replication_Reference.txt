@@ -1,0 +1,377 @@
+A2 Charging & Platform Model - Replication Reference Guide
+==========================================================
+
+Purpose
+-------
+This file is the implementation reference for rebuilding the workbook
+`A2 E FLEET OPERATIONS  FINANCIALS-VER 2.xlsx` exactly as it behaves today so that:
+1. loading the current Excel inputs reproduces the current Excel outputs exactly, and
+2. changing any workbook-backed input recalculates all dependent results recursively.
+
+Important scope note
+--------------------
+This workbook is not a set of three standalone financial statements for
+A2 Energy, A2 Platform, and A2 Fleet.
+
+It is a combined charging / battery swapping / platform model whose
+commercial demand is driven by fleet deployment assumptions.
+
+Interpret the workbook as:
+- Fleet demand drivers live mainly in `ASSUMPTIONS_DATA` and `POWER CALCULATIONS`
+- Energy economics live mainly in power sales and power purchase lines
+- Platform economics live mainly in subscription revenue and software capex
+- Financial statements are combined at workbook level, not split into three entity-ledger statements
+
+Source file
+-----------
+- Workbook: `A2 E FLEET OPERATIONS  FINANCIALS-VER 2.xlsx`
+
+Core modeling principle
+-----------------------
+Treat the workbook as the source of truth for:
+- sheet names
+- row labels
+- cell locations
+- literal formulas
+- hardcoded constants
+- baseline output values
+
+Do not normalize, rename, or "fix" formulas during the first replication pass.
+Replicate literal workbook behavior first, including quirks and label mismatches.
+
+Workbook flow
+-------------
+ASSUMPTIONS_DATA
+  -> POWER CALCULATIONS
+  -> REVENUE PROJECTION
+  -> CAPEX & DEPRECIATION
+  -> SOURCE_USE OF FUNDS
+  -> INCOME STATEMENT 
+  -> CASH FLOW
+  -> BALANCE SHEET
+  -> VALUATION SUMMARY
+  -> KEY METRICS
+
+Sheet roles
+-----------
+- `ASSUMPTIONS_DATA`
+  Master driver sheet for network build, truck deployment, swap operations,
+  battery inventory, infrastructure costs, software / hardware cost, reserves,
+  and total investment.
+
+- `POWER CALCULATIONS`
+  Fleet energy-demand and charging-load sheet.
+  Converts truck deployment into annual power units consumed and cost of power.
+
+- `REVENUE PROJECTION`
+  Commercial revenue layer.
+  Builds revenue from power sales plus software subscriptions.
+
+- `CAPEX & DEPRECIATION`
+  Capex schedule, depreciation schedule, total depreciation,
+  and asset value roll-forwards.
+
+- `SOURCE_USE OF FUNDS`
+  Equity funding and use-of-funds schedule for the combined workbook case.
+
+- `INCOME STATEMENT `
+  Combined operating statement for energy sales plus platform revenue.
+
+- `CASH FLOW`
+  Combined cash flow statement.
+
+- `BALANCE SHEET`
+  Combined balance sheet with retained earnings plug behavior.
+
+- `VALUATION SUMMARY`
+  EBITDA multiple valuation, investor stake value, MOIC, and reference IRR linkage.
+
+- `KEY METRICS`
+  EBITDA margin, net margin, and ROE.
+
+Assumptions section
+-------------------
+Use workbook naming exactly in the first replication pass.
+Do not rename row labels into the older freight / fleet vocabulary.
+
+Primary workbook-backed inputs
+------------------------------
+The workbook has material hardcoded numeric inputs across multiple sheets, not only
+on `ASSUMPTIONS_DATA`.
+
+1. Network build and fleet demand inputs (`ASSUMPTIONS_DATA`)
+-------------------------------------------------------------
+- `C3`  `MAXIMUM DISTANCE BETWEEN CHARGING STATIONS` = `220`
+- `C4:N4`  `NUMBER OF STATIONS` = `7` for each year
+- `D5:J5`  `NUMBER OF TRUCKS ADDED` = `714, 714, 714, 714, 714, 714, 716`
+- `C7:N7`  `NUMBER OF SWAPS PER TRUCK PER DAY` = `1`
+- `C9`  `NUMBER OF MINUTES PER SWAP` = `7`
+- `C11`  `NUMBER OF HOURS OF SWAPPING PER DAY` = `18`
+- `C14`  `NUMBER OF HOURS/DAY OF CHARGING PER CHARGER` = `7`
+- `C15`  `NUMBER OF BATTERY PACKS CHARGED PER CHARGER PER DAY` = `7`
+- `J16`  `NUMBER OF CHARGERS REQUIRED` = `103`
+  This is a hardcoded workbook value and not formula-driven like surrounding years.
+- `D18:N18`  `NUMBER OF SWAPPING BAYS PER STATION`
+  = `7, 14, 14, 21, 28, 28, 28, 35, 35, 35, 35`
+- `C19`  `NUMBER OF BATTERY PACKS PER TRUCK` = `1.5`
+- `C21:L21`  `BATTERY PACK REPLACEMENT` = `0`
+
+2. Build cost and reserve inputs (`ASSUMPTIONS_DATA`)
+-----------------------------------------------------
+- `C24`  `COST PER CHARGING/SWAPPING STATION` = `1,000,000`
+- `C25`  `COST PER CHARGER` = `100,000`
+- `C26`  `COST OF SWAPPING BAY` = `400,000`
+- `C27`  `COST PER BATTERY PACK` = `65,000`
+- `C28`  `COST PER TRUCK` = `70,000`
+- `D34:H34`  `SOFTWARE & PLATFORM DEVELOPMENT`
+  = `1,000,000, 500,000, 500,000, 500,000, 500,000`
+- `C35`  `HARDWARE & OFFICE EQUIPMENT` = `2,000,000`
+- `C36`  `OPERATING  RESERVE ( 10% OF FUNDS)` = `10,000,000`
+- `C37`  `CONTINGENCY RESERVE` = `5,000,000`
+
+3. Power and charging physics inputs (`POWER CALCULATIONS`)
+-----------------------------------------------------------
+- `C3`  `NUMBER OF TRUCKS` = `5,000`
+- `C4`  `AVERAGE KILOMETRES PER TRUCK PER YEAR` = `60,000`
+- `C5`  `TOTAL KILOMETRES OF FLEET` = `60,000`
+  The workbook uses this as a base scalar in `C10`; preserve literal behavior.
+- `C6`  `BATTERY CAPACITY PER TRUCK` = `588`
+- `C7`  `RATED RANGE PER CHARGE` = `350`
+- `C8`  `REAL USE RANGE PER CHARGE` = `220`
+- `C13` `CHARGING TIME PER BATTERY PACK` = `1`
+- `C14` `POWER LOAD PER CHARGE` = `588`
+- `C16` `COMPENSATION FOR THERMAL AND CHEMICAL CONVERSION LOSS` = `10%`
+- `C17` `AVERAGE RESIDUAL CHARGE` = `20%`
+- `C21` `NUMBER OF HOURS OF CHARGING PER DAY` = `7`
+- `C28` `PURCHASE RATE PER KW` (ETB) = `7`
+
+4. Useful life inputs (`CAPEX & DEPRECIATION`)
+----------------------------------------------
+- `C3`  `CHARGING/SWAPPING STATIONS` useful life = `12`
+- `C4`  `CHARGERS` useful life = `12`
+- `C5`  `SWAPPING BAYS` useful life = `10`
+- `C6`  `SOFTWARE & PLATFORM DEVELOPMENT` useful life = `8`
+- `C7`  `HARDWARE & OFFICE EQUIPMENT` useful life = `10`
+- `C38` `SOFTWARE & PLATFORM DEVELOPMENT` useful life = `8`
+  Preserve literal duplication.
+
+5. Financial policy inputs
+--------------------------
+- `INCOME STATEMENT !C9` = `1,000,000`
+- `INCOME STATEMENT !D9` = `3,000,000`
+  These seed the operating-expense escalation pattern.
+- `VALUATION SUMMARY!C4:H4` valuation multiples
+  = `10, 12, 12, 12, 12, 12`
+- `VALUATION SUMMARY!C6:H6` net debt = `0`
+- `CASH FLOW!C14:N14` dividend rate = `0`
+
+Important derived cascades
+--------------------------
+1. Fleet deployment cascade
+- `NUMBER OF TRUCKS ADDED` -> `NUMBER OF TRUCKS CUMALATIVE`
+- cumulative trucks -> total swaps per day
+
+2. Charging infrastructure cascade
+- swaps per day -> battery packs to swap per day
+- battery packs to swap per day -> chargers required
+- chargers required -> chargers per station
+- swap throughput -> swapping bays per station
+
+3. Battery inventory cascade
+- trucks added x packs per truck -> battery packs required
+- replacements + additions -> total number of battery packs
+
+4. Energy demand cascade
+- trucks -> fleet kilometres
+- battery parameters -> energy used per km
+- kilometres x energy intensity -> total power units consumed per year
+- power units x purchase rate -> cost of power
+
+5. Revenue cascade
+- power units sold x sale price per unit -> revenue from power sales
+- users x subscription charge -> revenue from subscriptions
+- combined revenue feeds the income statement
+
+6. Capex cascade
+- stations + chargers + swapping bays + software + hardware
+  -> total capex
+- reserves and contingencies remain in assumptions / sources and uses
+
+7. Funding cascade
+- total investment less truck and battery-pack capex lines
+  -> investor subscription / use-of-funds schedule
+
+8. Financial statement cascade
+- revenue + power cost + opex + lease charges + depreciation
+  -> EBITDA -> EBT -> tax -> EAT
+- EAT + depreciation + capex + equity injection
+  -> cash flow
+- cash + asset values + retained earnings plug
+  -> balance sheet
+- EBITDA multiple valuation + investor 25% stake value
+  -> MOIC / IRR reference
+
+Statement map
+-------------
+Revenue Projection
+- Row 3: `NO OF POWER UNITS SOLD`
+- Row 4: `NUMBER OF USERS - SOFTWARE SUBSCRIPTION`
+- Row 5: `SALE PRICE PER UNIT`
+- Row 6: `REVENUE FROM POWER SALES`
+- Row 7: `REVENUE FROM SUBSCRIPTIONS`
+
+Income Statement
+- Row 3: `REVENUE`
+- Row 4: `LESS: COST OF POWER PURCHASE FROM EEP`
+- Row 5: `GROSS MARGIN`
+- Row 6: `ADD: PLATFORM REVENUE ( SUBSCRIPTIONS)`
+- Row 7: `GROSS PROFIT`
+- Row 9: `LESS: OPERATING EXPENSES`
+- Row 10: `LESS: VARIABLE OPEX (6% OF REVENUE)`
+- Row 11: `LESS: BATTERY LEASE CHARGES`
+- Row 12: `EBITDA`
+- Row 13: `DEPRECIATION`
+- Row 14: `EBT`
+- Row 15: `TAX @ 30%`
+- Row 17: `EAT (NET INCOME)`
+- Row 20: `CUMULATIVE EAT`
+- Row 21: `RATE OF RETURN`
+- Row 22: `INVESTOR EAT (NET INCOME) 25%`
+- Row 23: `INVESTOR RATE OF RETURN 25%`
+- Row 24: `IRR`
+
+Critical workbook quirks to preserve
+------------------------------------
+1. The sheet name `INCOME STATEMENT ` has a trailing space.
+2. `ASSUMPTIONS_DATA!J16` is hardcoded to `103` while surrounding years are formula-driven.
+3. `SOURCE_USE OF FUNDS!C5:M5` is labeled `EQUITY-INVESTOR SUBSCRIPTION (25%)`
+   but does not behave as a simple 25% formula.
+   It is effectively:
+   `total investment - truck capex - battery pack capex`
+   with `C5` also adding contingency reserve.
+4. `SOURCE_USE OF FUNDS!A14` is itself a formula reference to `ASSUMPTIONS_DATA!A36`
+   and resolves to the operating reserve label.
+5. `INCOME STATEMENT !N10 = M10*1.2` instead of a direct `N3*0.06` style formula.
+6. `INCOME STATEMENT !N15 = M15*1.2` instead of a direct `N14*0.3`.
+7. `CAPEX & DEPRECIATION!P6` links to `ASSUMPTIONS_DATA!N33`
+   and `P7` links to `ASSUMPTIONS_DATA!N34`.
+   These appear misaligned but currently evaluate to zero; preserve literal links first.
+8. `CAPEX & DEPRECIATION` contains a row labeled `BATTERY PACKS` in asset values,
+   but that roll-forward is built from the swapping-bays depreciation block.
+   Preserve literal workbook behavior before reclassifying.
+9. `CAPEX & DEPRECIATION!E11:P11` (`CAPEX - CLOSING BALANCE`) goes negative in later years.
+   Do not treat it as a cleaned book-value schedule unless formulas are intentionally reworked later.
+10. Balance-sheet retained earnings behaves as a plug:
+    total assets - equity = retained earnings.
+11. The workbook uses direct cell links extensively.
+    Row positions and exact cell references matter.
+
+Baseline validation targets
+---------------------------
+These are recommended baseline outputs for the first replication pass.
+
+Revenue Projection / Revenue from Power Sales
+- CY-2027  `15,512,853.9589442`
+- CY-2028  `34,128,278.7096773`
+- CY-2029  `56,311,659.8709678`
+- CY-2030  `82,590,434.4774195`
+- CY-2031 `113,561,847.406452`
+- CY-2032 `149,901,638.576517`
+- CY-2033 `192,450,749.806452`
+- CY-2034 `211,695,824.787098`
+- CY-2035 `232,865,407.265807`
+- CY-2036 `256,151,947.992388`
+- CY-2037 `281,767,142.791627`
+
+Revenue Projection / Revenue from Subscriptions
+- CY-2027 `285,600`
+- CY-2028 `571,200`
+- CY-2029 `856,800`
+- CY-2030 `1,142,400`
+- CY-2031 `1,428,000`
+- CY-2032 `1,713,600`
+- CY-2033 `2,000,000`
+- CY-2034 `2,000,000`
+- CY-2035 `2,000,000`
+- CY-2036 `2,000,000`
+- CY-2037 `2,000,000`
+
+Income Statement / EBITDA
+- CY-2026 `-1,000,000`
+- CY-2027 `1,267,232.51612898`
+- CY-2028 `5,730,791.53548376`
+- CY-2029 `10,990,126.0335484`
+- CY-2030 `17,156,611.515871`
+- CY-2031 `24,354,740.8343228`
+- CY-2032 `32,723,393.901306`
+- CY-2033 `42,437,740.4503227`
+- CY-2034 `45,585,719.2953558`
+- CY-2035 `48,869,336.9848911`
+- CY-2036 `52,266,325.5953799`
+- CY-2037 `54,208,112.3613635`
+
+Income Statement / EAT (Net Income)
+- CY-2026 `-1,000,000`
+- CY-2027 `-771,100.81720435`
+- CY-2028 `1,154,970.7415053`
+- CY-2029 `3,007,754.89015055`
+- CY-2030 `4,704,544.72777639`
+- CY-2031 `6,528,485.25069265`
+- CY-2032 `9,411,542.39758089`
+- CY-2033 `12,641,584.9818926`
+- CY-2034 `14,456,670.1734158`
+- CY-2035 `16,842,702.5560905`
+- CY-2036 `19,068,344.5834326`
+- CY-2037 `19,855,701.8136934`
+
+Cash Flow / Cash-Closing Balance
+- CY-2026 `9,000,000`
+- CY-2027 `15,267,232.516129`
+- CY-2028 `20,503,036.5909676`
+- CY-2029 `30,204,124.8144515`
+- CY-2030 `45,344,502.8755612`
+- CY-2031 `66,901,321.4595872`
+- CY-2032 `95,591,197.1905014`
+- CY-2033 `132,611,115.505727`
+- CY-2034 `172,001,119.012476`
+- CY-2035 `213,652,154.9019`
+- CY-2036 `257,746,332.818666`
+- CY-2037 `302,147,867.965693`
+
+Valuation Summary / Investor 25% Stake Value
+- CY-2028 `14,326,978.8387094`
+- CY-2030 `51,469,834.547613`
+- CY-2033 `127,313,221.350968`
+- CY-2035 `146,608,010.954673`
+- CY-2036 `156,798,976.78614`
+- CY-2037 `162,624,337.084091`
+
+Valuation Summary / MOIC
+- CY-2028 `0.434150873900285`
+- CY-2030 `1.55969195598827`
+- CY-2033 `3.85797640457479`
+- CY-2035 `4.44266699862645`
+- CY-2036 `4.75148414503455`
+- CY-2037 `4.92801021466942`
+
+IRR reference
+- `INCOME STATEMENT !C24 = IRR(C22:O22,0.18)`
+- Result = `0.16517773956309`
+- `INCOME STATEMENT !O22` is the exit value link from `VALUATION SUMMARY!H8`
+  and is part of the IRR cash-flow range
+
+Replication requirements
+------------------------
+To pass the first replication:
+1. preserve the exact sheet names
+2. preserve literal workbook formulas
+3. preserve workbook spelling, spacing, and label oddities
+4. load hardcoded inputs exactly as listed above
+5. keep cross-sheet references unchanged
+6. reproduce baseline outputs before doing any cleanup or modular split
+
+Recommended implementation posture
+----------------------------------
+Build this workbook first as a combined charging / platform model driven by fleet demand.
+Do not force it into separate A2 Energy / A2 Platform / A2 Fleet statements
+until the combined workbook has been replicated and validated.

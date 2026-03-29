@@ -6,6 +6,7 @@ import {
   calculateCashFlow,
   calculateIncomeStatement,
   calculateKeyMetrics,
+  calculatePowerCalculations,
   calculateRevenueProjection,
   calculateSourceUseOfFunds,
   calculateValuationSummary,
@@ -27,7 +28,8 @@ describe('a2 fleet workbook stages', () => {
     const baseValues = getBaseAssumptionBundle().baseValues;
     const normalized = normalizeAssumptions(baseValues);
     const derived = buildDerivedAssumptions(normalized);
-    const revenue = calculateRevenueProjection(derived.context);
+    const power = calculatePowerCalculations(derived.context);
+    const revenue = calculateRevenueProjection(power.context);
     const capex = calculateCapexDepreciation(revenue.context);
     const sourceUse = calculateSourceUseOfFunds(capex.context);
     const income = calculateIncomeStatement(sourceUse.context);
@@ -37,6 +39,7 @@ describe('a2 fleet workbook stages', () => {
     const metrics = calculateKeyMetrics(valuation.context);
 
     expect(derived.statement.sheet).toBe('ASSUMPTIONS_DATA');
+    expect(power.statement.sheet).toBe('POWER CALCULATIONS');
     expect(revenue.statement.sheet).toBe('REVENUE PROJECTION');
     expect(capex.statement.sheet).toBe('CAPEX & DEPRECIATION');
     expect(sourceUse.statement.sheet).toBe('SOURCE_USE OF FUNDS');
@@ -66,7 +69,7 @@ describe('a2 fleet workbook stages', () => {
     ).toBe(true);
     expect(equityIrr?.status).toBe('ready');
     expect(equityIrr?.value).not.toBeNull();
-    expect(equityIrr?.value).toBeCloseTo(16.5670780707392, 8);
+    expect(equityIrr?.value).toBeCloseTo(16.517773956309, 8);
     expect(projectIrr?.status).toBe('ready');
   });
 
@@ -77,10 +80,10 @@ describe('a2 fleet workbook stages', () => {
       'a2_fleet.number_of_trucks.cy_2027': 800,
     });
 
-    expect(getRowValue(output.derivedAssumptions.rows, 'trucks_in_operation', 0)).toBe(800);
-    expect(getRowValue(output.derivedAssumptions.rows, 'trucks_in_operation', 1)).toBe(1514);
-    expect(getRowValue(output.revenueProjection.rows, 'revenue_from_freight_charges', 0)).toBeGreaterThan(
-      34_893_870.9677419,
+    expect(getRowValue(output.derivedAssumptions.rows, 'number_of_trucks_cumalative', 0)).toBe(800);
+    expect(getRowValue(output.derivedAssumptions.rows, 'number_of_trucks_cumalative', 1)).toBe(1514);
+    expect(getRowValue(output.revenueProjection.rows, 'revenue_from_power_sales', 0)).toBeGreaterThan(
+      15_512_853.9589442,
     );
     expect(getRowValue(output.valuationSummary.rows, 'investor_25_stake_value', 5)).toBeGreaterThan(
       0,

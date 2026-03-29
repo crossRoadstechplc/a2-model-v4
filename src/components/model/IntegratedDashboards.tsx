@@ -111,7 +111,7 @@ function PreCalculationState({
     return (
       <LoadingState
         title="Running the integrated model expansion"
-        description="Platform, Energy, inter-company flows, and consolidated scaffolding are being calculated."
+        description="Platform, Energy, inter-company flows, and consolidated outputs are being calculated."
       />
     );
   }
@@ -185,7 +185,7 @@ export function PlatformDashboard() {
     <div className="space-y-6">
       <AnalyticalPageHeader
         title="A2 Platform"
-        intro="First-pass platform sizing, revenue, opex, capex, depreciation, and breakeven views built on top of the Fleet anchor."
+        intro="Platform sizing, revenue, opex, capex, depreciation, and breakeven views driven by fleet demand and the workbook subscription stack."
         badge="Platform module"
       />
       <PreCalculationState
@@ -394,7 +394,7 @@ export function PlatformDashboard() {
 
           <SectionAccordion
             title="Returns / Valuation"
-            description="First-pass cumulative return metrics are shown here now, with room for a fuller Platform financing and investor-distribution layer later."
+            description="Project return metrics are shown here now, with room for a fuller Platform financing and investor-distribution layer later."
             defaultOpen={false}
           >
             <ReturnsMetricGrid
@@ -417,7 +417,7 @@ export function EnergyDashboard() {
     <div className="space-y-6">
       <AnalyticalPageHeader
         title="A2 Energy"
-        intro="Battery fleet sizing, replacement, provision, lease income, and energy capex/opex built from the integrated model scaffold."
+        intro="Battery fleet sizing, replacement, power-sales economics, and energy capex/opex built from the integrated charging model."
         badge="Energy module"
       />
       <PreCalculationState
@@ -573,7 +573,7 @@ export function EnergyDashboard() {
           >
             <StatementTable
               title="Inter-Company Flow Layer"
-              description="Shared transfer pricing scaffolding for the integrated model."
+              description="Shared transfer-pricing layer for the integrated model."
               statement={integrated.intercompany.statement}
               previousStatement={previousIntegrated?.intercompany.statement}
               dataTestId="statement-table-intercompany-energy"
@@ -582,7 +582,7 @@ export function EnergyDashboard() {
 
           <SectionAccordion
             title="Returns / Valuation"
-            description="First-pass cumulative return metrics are shown here now, with room for a fuller Energy investment case and financing layer later."
+            description="Project return metrics are shown here now, with room for a fuller Energy investment case and financing layer later."
             defaultOpen={false}
           >
             <ReturnsMetricGrid
@@ -605,11 +605,11 @@ export function ConsolidatedDashboard() {
     <div className="space-y-6">
       <AnalyticalPageHeader
         title="Consolidated / Corridor View"
-        intro="First consolidated scaffold combining Fleet, Platform, and Energy with explicit eliminations and convergence diagnostics."
-        badge="Consolidated scaffold"
+        intro="Workbook-anchored consolidated view combining Fleet demand, Platform, and Energy diagnostics with explicit eliminations and convergence diagnostics."
+        badge="Consolidated view"
       />
       <PreCalculationState
-        title="Run the model to populate the consolidated scaffold"
+        title="Run the model to populate the consolidated view"
         description="Consolidated statements, eliminations, and convergence diagnostics remain empty until the integrated model is calculated."
       />
       {integrated ? (
@@ -617,7 +617,7 @@ export function ConsolidatedDashboard() {
           <RunStateAlert />
           <SectionAccordion
             title="Consolidated KPIs"
-            description="Placeholder consolidated KPIs built on the first-pass elimination scaffold."
+            description="Workbook-anchored consolidated KPIs paired with the analytical elimination bridge."
             defaultOpen
             meta={<StatusBadge tone="accent">Priority</StatusBadge>}
           >
@@ -650,7 +650,7 @@ export function ConsolidatedDashboard() {
             <div className="space-y-4">
               <StatementTable
                 title="Inter-Company Flows"
-                description="Internal fee, lease, and revenue-share flows used by the elimination scaffold."
+                description="Internal fee, lease, and revenue-share flows used by the elimination bridge."
                 statement={integrated.intercompany.statement}
                 previousStatement={previousIntegrated?.intercompany.statement}
                 dataTestId="statement-table-intercompany-consolidated"
@@ -681,27 +681,27 @@ export function ConsolidatedDashboard() {
 
           <SectionAccordion
             title="Consolidated Statements"
-            description="First scaffolded consolidated statements, designed to expand toward fuller COMFAR-style completeness."
+            description="Workbook-anchored consolidated statements paired with explicit eliminations and diagnostic overlays."
             defaultOpen={false}
           >
             <div className="space-y-4">
               <StatementTable
                 title="Consolidated Income Statement"
-                description="Revenue, eliminations, operating cost scaffold, EBITDA, EBIT, tax, and net income."
+                description="Revenue, eliminations, operating costs, EBITDA, EBIT, tax, and net income."
                 statement={integrated.consolidated.incomeStatement}
                 previousStatement={previousIntegrated?.consolidated.incomeStatement}
                 dataTestId="statement-table-consolidated-income"
               />
               <StatementTable
                 title="Consolidated Cash Flow"
-                description="Cash scaffolding anchored on Fleet and expanded for Platform and Energy capex."
+                description="Workbook cash flow anchor paired with analytical expansion-capex context."
                 statement={integrated.consolidated.cashFlow}
                 previousStatement={previousIntegrated?.consolidated.cashFlow}
                 dataTestId="statement-table-consolidated-cash"
               />
               <StatementTable
                 title="Consolidated Balance Sheet"
-                description="Asset and equity scaffold that keeps room for fuller future elimination logic."
+                description="Workbook balance-sheet anchor with Platform and Energy asset diagnostics alongside it."
                 statement={integrated.consolidated.balanceSheet}
                 previousStatement={previousIntegrated?.consolidated.balanceSheet}
                 dataTestId="statement-table-consolidated-balance"
@@ -711,7 +711,7 @@ export function ConsolidatedDashboard() {
 
           <SectionAccordion
             title="Returns / Valuation"
-            description="First-pass cumulative return metrics are shown here now, with room for a fuller integrated financing and distribution model later."
+            description="Project return metrics are shown here now, with room for a fuller integrated financing and distribution model later."
             defaultOpen={false}
           >
             <ReturnsMetricGrid

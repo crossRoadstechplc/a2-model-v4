@@ -56,7 +56,7 @@ export function AssumptionField({
         className={
           isSidebar
             ? 'space-y-3'
-            : 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_11rem] lg:items-start'
+            : 'grid gap-4 xl:grid-cols-[minmax(0,1fr)_11rem] xl:items-start'
         }
       >
         {isSidebar ? (
@@ -66,6 +66,7 @@ export function AssumptionField({
               value={displayValue}
               decimals={definition.decimals}
               unit={displayUnit}
+              showInlineUnit={false}
               onCommit={(nextValue) =>
                 setAssumption(
                   definition.key,
@@ -119,6 +120,7 @@ export function AssumptionField({
               value={displayValue}
               decimals={definition.decimals}
               unit={displayUnit}
+              showInlineUnit={false}
               onCommit={(nextValue) =>
                 setAssumption(
                   definition.key,

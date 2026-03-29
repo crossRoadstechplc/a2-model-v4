@@ -9,22 +9,22 @@ type StatementLike = {
 };
 
 const FLEET_WORKBOOK_IRR_SERIES_CELLS = [
-  'C19',
-  'D19',
-  'E19',
-  'F19',
-  'G19',
-  'H19',
-  'I19',
-  'J19',
-  'K19',
-  'L19',
-  'M19',
-  'N19',
-  'O19',
+  'C22',
+  'D22',
+  'E22',
+  'F22',
+  'G22',
+  'H22',
+  'I22',
+  'J22',
+  'K22',
+  'L22',
+  'M22',
+  'N22',
+  'O22',
 ] as const;
 
-const FLEET_WORKBOOK_IRR_RESULT_CELL = 'D21';
+const FLEET_WORKBOOK_IRR_RESULT_CELL = 'C24';
 
 function getRowValues(statement: StatementLike, key: string) {
   return statement.rows.find((row) => row.key === key)?.values ?? [];
@@ -32,8 +32,8 @@ function getRowValues(statement: StatementLike, key: string) {
 
 /**
  * Workbook-faithful Fleet equity IRR replication.
- * The source of truth is the literal workbook IRR row in `INCOME STATEMENT !C19:O19`
- * that feeds the Excel formula `IRR(C19:O19, 0.1)`.
+ * The source of truth is the literal workbook IRR row in `INCOME STATEMENT !C22:O22`
+ * that feeds the Excel formula `IRR(C22:O22, 0.18)`.
  */
 export function buildFleetWorkbookEquityIrrSeries(workbookValuesBySheet: WorkbookSheetValues) {
   const sheetValues = workbookValuesBySheet['INCOME STATEMENT '] ?? {};

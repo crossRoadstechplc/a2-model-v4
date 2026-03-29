@@ -32,6 +32,7 @@ type WorkbookGetter = (sheet: WorkbookSheetName, cell: string) => number;
 
 const SHEET_ALIASES: Record<string, WorkbookSheetName> = {
   ASSUMPTIONS_DATA: 'ASSUMPTIONS_DATA',
+  'POWER CALCULATIONS': 'POWER CALCULATIONS',
   'REVENUE PROJECTION': 'REVENUE PROJECTION',
   'CAPEX & DEPRECIATION': 'CAPEX & DEPRECIATION',
   'SOURCE_USE OF FUNDS': 'SOURCE_USE OF FUNDS',

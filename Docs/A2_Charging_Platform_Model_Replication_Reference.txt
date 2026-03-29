@@ -1,6 +1,7 @@
 A2 Charging & Platform Model - Replication Reference Guide
 ==========================================================
 
+
 Purpose
 -------
 This file is the implementation reference for rebuilding the workbook

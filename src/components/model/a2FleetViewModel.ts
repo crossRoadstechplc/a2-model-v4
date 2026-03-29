@@ -69,7 +69,6 @@ export function buildFleetOverviewKpis(output: A2FleetWorkbookOutput): Dashboard
   ];
   const incomePeriod =
     output.incomeStatement.periods[output.incomeStatement.periods.length - 1];
-  const cashPeriod = output.cashFlow.periods[output.cashFlow.periods.length - 1];
   const valuationPeriod =
     output.valuationSummary.periods[output.valuationSummary.periods.length - 1];
 

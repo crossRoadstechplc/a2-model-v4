@@ -6,7 +6,11 @@ import {
   type WorkbookSheetName,
 } from '../engine/a2Fleet/reference';
 import { normalizeA2FleetAssumptions } from '../engine/a2Fleet/normalizeAssumptions';
-import { getBaseAssumptionBundle, type AssumptionMetadata } from './assumptions';
+import {
+  assumptionMetadataByKey,
+  getBaseAssumptionBundle,
+  type AssumptionMetadata,
+} from './assumptions';
 import { referenceWorkbookInputCells } from './referenceWorkbookInputs';
 
 type BaselineTargetSpec = {
@@ -321,18 +325,21 @@ export function reconcileBaseAssumptions() {
   });
 
   const transformed: AssumptionNormalizationTransform[] = normalized.referenceAssumptions.map(
-    (item) => ({
-      key: item.key,
-      label: item.metadata.label,
-      groupId: item.metadata.groupId,
-      sheet: item.sheet,
-      cell: item.cell,
-      referenceCellId: buildCellId(item.sheet, item.cell),
-      appValue: bundle.baseValues[item.key],
-      normalizedValue: item.value,
-      valuePreserved: isAssumptionMatch(bundle.baseValues[item.key], item.value),
-      transformation: 'Stable assumption key normalized to workbook sheet/cell input.',
-    }),
+    (item) => {
+      const meta = assumptionMetadataByKey[item.key];
+      return {
+        key: item.key,
+        label: meta?.label ?? item.key,
+        groupId: meta?.groupId ?? 'fleet',
+        sheet: item.sheet,
+        cell: item.cell,
+        referenceCellId: buildCellId(item.sheet, item.cell),
+        appValue: bundle.baseValues[item.key],
+        normalizedValue: item.value,
+        valuePreserved: isAssumptionMatch(bundle.baseValues[item.key], item.value),
+        transformation: 'Stable assumption key normalized to workbook sheet/cell input.',
+      };
+    },
   );
 
   return {

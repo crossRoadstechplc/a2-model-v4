@@ -172,7 +172,6 @@ function buildConsolidatedOutput(params: {
   const internalExpenseElimination = intercompany.statement.rows
     .find((row) => row.key === 'total_internal_flows')
     ?.values.map((value) => -value) ?? [];
-  const consolidatedOperatingCosts = consolidatedOperatingCostsBase;
   const consolidatedDepreciation = fleetDepreciation;
   const consolidatedEbitda = fleetEbitda;
   const consolidatedEbit = fleetEbit;

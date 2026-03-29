@@ -77,10 +77,6 @@ function colorStroke(color: [number, number, number]) {
   return `${color[0]} ${color[1]} ${color[2]} RG`;
 }
 
-function clamp(value: number, minimum: number, maximum: number) {
-  return Math.min(Math.max(value, minimum), maximum);
-}
-
 function wrapText(text: string, width: number, fontSize: number) {
   const maxChars = Math.max(10, Math.floor(width / (fontSize * 0.53)));
   if (text.length <= maxChars) {
